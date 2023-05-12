@@ -23,7 +23,7 @@ class Model(PushToHubFriendlyModel):
         self.preseqlen = args.prefix_tuning.prefix_sequence_length
         self.mid_dim = args.prefix_tuning.mid_dim
 
-        print("prefix-tuning sequence length is {}.".format(self.preseqlen))
+        print(f"prefix-tuning sequence length is {self.preseqlen}.")
 
         # Load tokenizer and model.
         self.tokenizer = AutoTokenizer.from_pretrained(args.bert.location, use_fast=False)
@@ -32,14 +32,13 @@ class Model(PushToHubFriendlyModel):
         )
         self.config = self.pretrain_model.config
         from ..prompt.modeling_t5 import T5ForConditionalGeneration
-        if isinstance(self.pretrain_model, (T5ForConditionalGeneration)):
-            self.match_n_layer = self.config.num_decoder_layers
-            self.match_n_head = self.config.num_heads
-            self.n_embd = self.config.d_model
-            self.match_n_embd = self.config.d_kv
-        else:
+        if not isinstance(self.pretrain_model, (T5ForConditionalGeneration)):
             raise ValueError("Other models are not supported yet!")
 
+        self.match_n_layer = self.config.num_decoder_layers
+        self.match_n_head = self.config.num_heads
+        self.n_embd = self.config.d_model
+        self.match_n_embd = self.config.d_kv
         if args.special_tokens:
             self.tokenizer.add_tokens([v for k, v in args.special_tokens])
             self.pretrain_model.resize_token_embeddings(len(self.tokenizer))
@@ -161,7 +160,7 @@ class Model(PushToHubFriendlyModel):
         past_key_values_enc = self.control_trans_enc(
             temp_control_enc
         )  # bsz, seqlen, layer*emb
-        
+
         pdb.set_trace()
 
         bsz_enc, seqlen, _ = past_key_values_enc.shape
@@ -177,14 +176,14 @@ class Model(PushToHubFriendlyModel):
 
         result = []
         for i, key_val in enumerate(past_key_values):
-            temp = dict()
-            temp["decoder_prompt"] = {
-                "prev_key": key_val[0].contiguous(),
-                "prev_value": key_val[1].contiguous(),
-                "prev_key_padding_mask": torch.zeros(bsz, seqlen)
+            temp = {
+                "decoder_prompt": {
+                    "prev_key": key_val[0].contiguous(),
+                    "prev_value": key_val[1].contiguous(),
+                    "prev_key_padding_mask": torch.zeros(bsz, seqlen)
                     .to(key_val.device)
-                    .bool()
-                # bsz, preseqlen
+                    .bool(),
+                }
             }
             key_val_dec = past_key_values_dec[i]
             temp["cross_attention_prompt"] = {
@@ -274,7 +273,7 @@ class Model(PushToHubFriendlyModel):
         graph_node_idx_batch = kwargs.pop('graph_nodes_subwords_idx', None)
 
         new_graph_batch = [] # list of dicts
-        for i, graph_idx in enumerate(graph_idx_batch_lst):
+        for graph_idx in graph_idx_batch_lst:
             new_graph = self.graph_postprocess(self.graph_pedia[graph_idx], device)
             new_graph_batch.append(new_graph)
 
@@ -288,20 +287,19 @@ class Model(PushToHubFriendlyModel):
         graph_idx_batch_lst = [int(idx) for idx in graph_idx_batch]
 
         new_graph_batch = []
-        for i, graph_idx in enumerate(graph_idx_batch_lst):
+        for graph_idx in graph_idx_batch_lst:
             new_graph = self.graph_postprocess(self.graph_pedia[graph_idx], device)
             new_graph_batch.append(new_graph)
-        
+
 
         return new_graph_batch
 
 
     def graph_postprocess(self, graph: dict, device):
-        new_graph = {}
         edges = graph['edges']
         rel_ids = list(map(lambda r: self.rel2id[r[2]], edges))
 
-        new_graph['edges'] = torch.tensor(rel_ids, dtype=torch.long, device=device)
+        new_graph = {'edges': torch.tensor(rel_ids, dtype=torch.long, device=device)}
         new_graph['graph'] = graph['graph']
         # new_graph['question_subword_mask'] = torch.tensor(graph['question_subword_mask'], dtype=torch.bool)
         # new_graph['schema_subword_mask'] = torch.tensor(graph['schema_subword_mask'], dtype=torch.bool)
@@ -364,15 +362,13 @@ class Model(PushToHubFriendlyModel):
         past_prompt = self.get_prompt(
             bsz=bsz, sample_size=kwargs['num_beams'], description=description_representation, knowledge=knowledge_representation,
         )
-        generated_ids = self.pretrain_model.generate(
+        return self.pretrain_model.generate(
             input_ids=input_ids,
             attention_mask=attention_mask,
             past_prompt=past_prompt,
             use_cache=True,
             **kwargs,
         )
-
-        return generated_ids
 
 
 class T5LayerRGAT(nn.Module):
@@ -394,9 +390,7 @@ class T5LayerRGAT(nn.Module):
         # output = self.filter(output)
         output = output.view_as(hidden_states)
 
-        layer_output = hidden_states + self.dropout(output)
-        # pdb.set_trace()
-        return layer_output
+        return hidden_states + self.dropout(output)
     
     def graph_caption(self, hidden_states, graph_batch, relation_emb):
         '''

@@ -11,10 +11,7 @@ class CancelRegistration(API):
     database_name = 'Appointments'
 
     def __init__(self, init_database=None) -> None:
-        if init_database != None:
-            self.database = init_database
-        else:
-            self.database = {}
+        self.database = init_database if init_database != None else {}
 
     def call(self, appointment_id: str) -> dict:
         """
@@ -67,14 +64,14 @@ class CancelRegistration(API):
     def check_api_call_correctness(self, response, groundtruth) -> bool:
         response_id = response['input']['appointment_id'].strip()
         groundtruth_id = groundtruth['input']['appointment_id'].strip()
+        if response_id != groundtruth_id:
+            return False
         response_status = response['output']
         groundtruth_status = groundtruth['output']
         response_exception = response['exception']
         groundtruth_exception = groundtruth['exception']
-        if response_id != groundtruth_id:
-            return False
-        if response_status != groundtruth_status:
-            return False
-        if response_exception != groundtruth_exception:
-            return False
-        return True
+        return (
+            False
+            if response_status != groundtruth_status
+            else response_exception == groundtruth_exception
+        )

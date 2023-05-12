@@ -14,10 +14,7 @@ class ModifyScene(API):
     database_name = 'Scenes'
 
     def __init__(self, init_database=None) -> None:
-        if init_database != None:
-            self.database = init_database
-        else:
-            self.database = {}
+        self.database = init_database if init_database != None else {}
 
     def call(self, name: str, devices: list) -> dict:
         """
@@ -64,7 +61,7 @@ class ModifyScene(API):
         - status (str): whether the modification is successful.
         """
         name = name.strip().lower()
-        if name == "":
+        if not name:
             raise Exception("Scene name cannot be empty.")
         name_set = set([])
         for device in devices:
@@ -76,7 +73,7 @@ class ModifyScene(API):
                 name_set.add(device['name'])
             else:
                 raise Exception("Device name cannot be duplicated.")
-        
+
         devices.sort(key=lambda x: x['name'])
 
         scene = None
@@ -84,7 +81,7 @@ class ModifyScene(API):
             self.database[name] = devices
         else:
             raise Exception('The scene does not exist.')
-        
+
         return "success"
     
     def check_api_call_correctness(self, response, groundtruth) -> bool:
@@ -121,6 +118,4 @@ class ModifyScene(API):
             return False
         if response['output'] != groundtruth['output']:
             return False
-        if response['exception'] != groundtruth['exception']:
-            return False
-        return True
+        return response['exception'] == groundtruth['exception']

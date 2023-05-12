@@ -17,10 +17,7 @@ class Translate(API):
     }
     
     def __init__(self, init_database=None) -> None:
-        if init_database != None:
-            self.database = init_database
-        else:
-            self.database = {}
+        self.database = init_database if init_database != None else {}
         self.translator = Translator()
         self.LANGUAGES = googletrans.LANGUAGES
 
@@ -86,31 +83,28 @@ class Translate(API):
             tgt_lang = tgt_lang.lower()
         else:
             tgt_lang = None
-        
+
         def detect_language(lang):
-            if lang == None:
+            if lang is None:
                 return "en"
             if "chinese" in lang:
-                if "traditional" in lang:
-                    return "zh-tw"
-                else:
-                    return "zh-cn"
+                return "zh-tw" if "traditional" in lang else "zh-cn"
             for key in self.LANGUAGES:
                 if key == lang:
                     return key
                 elif self.LANGUAGES[key] in lang:
                     return key
-            
+
             raise Exception('Language not supported.')
-                
+
         if src_lang != None:
             src_lang = detect_language(src_lang)
         tgt_lang = detect_language(tgt_lang)
-        if src_lang == None:
+        if src_lang is None:
             translated_text = self.translator.translate(text, dest=tgt_lang).text
         else:
             translated_text = self.translator.translate(text, src=src_lang, dest=tgt_lang).text
-        
+
         return translated_text
     
     def check_api_call_correctness(self, response, groundtruth) -> bool:
@@ -130,7 +124,5 @@ class Translate(API):
             return False
         if response['output'] != groundtruth['output']:
             return False
-        if response['exception'] != groundtruth['exception']:
-            return False
-        return True
+        return response['exception'] == groundtruth['exception']
     

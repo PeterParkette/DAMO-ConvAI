@@ -144,9 +144,15 @@ class PushToHubFriendlyModel(nn.Module, ModuleUtilsMixin, PushToHubMixin):
         if pretrained_model_name_or_path is not None:
             pretrained_model_name_or_path = str(pretrained_model_name_or_path)
             if os.path.isdir(pretrained_model_name_or_path):
-                if from_tf and os.path.isfile(os.path.join(pretrained_model_name_or_path, TF_WEIGHTS_NAME + ".index")):
+                if from_tf and os.path.isfile(
+                    os.path.join(
+                        pretrained_model_name_or_path, f"{TF_WEIGHTS_NAME}.index"
+                    )
+                ):
                     # Load from a TF 1.0 checkpoint in priority if from_tf
-                    archive_file = os.path.join(pretrained_model_name_or_path, TF_WEIGHTS_NAME + ".index")
+                    archive_file = os.path.join(
+                        pretrained_model_name_or_path, f"{TF_WEIGHTS_NAME}.index"
+                    )
                 elif from_tf and os.path.isfile(os.path.join(pretrained_model_name_or_path, TF2_WEIGHTS_NAME)):
                     # Load from a TF 2.0 checkpoint in priority if from_tf
                     archive_file = os.path.join(pretrained_model_name_or_path, TF2_WEIGHTS_NAME)
@@ -158,18 +164,16 @@ class PushToHubFriendlyModel(nn.Module, ModuleUtilsMixin, PushToHubMixin):
                     archive_file = os.path.join(pretrained_model_name_or_path, WEIGHTS_NAME)
                 else:
                     raise EnvironmentError(
-                        f"Error no file named {[WEIGHTS_NAME, TF2_WEIGHTS_NAME, TF_WEIGHTS_NAME + '.index', FLAX_WEIGHTS_NAME]} found in "
-                        f"directory {pretrained_model_name_or_path} or `from_tf` and `from_flax` set to False."
+                        f"Error no file named {[WEIGHTS_NAME, TF2_WEIGHTS_NAME, f'{TF_WEIGHTS_NAME}.index', FLAX_WEIGHTS_NAME]} found in directory {pretrained_model_name_or_path} or `from_tf` and `from_flax` set to False."
                     )
             elif os.path.isfile(pretrained_model_name_or_path) or is_remote_url(pretrained_model_name_or_path):
                 archive_file = pretrained_model_name_or_path
-            elif os.path.isfile(pretrained_model_name_or_path + ".index"):
+            elif os.path.isfile(f"{pretrained_model_name_or_path}.index"):
                 if not from_tf:
                     raise ValueError(
-                        f"We found a TensorFlow checkpoint at {pretrained_model_name_or_path + '.index'}, please set "
-                        "from_tf to True to load from this checkpoint."
+                        f"We found a TensorFlow checkpoint at {pretrained_model_name_or_path}.index, please set from_tf to True to load from this checkpoint."
                     )
-                archive_file = pretrained_model_name_or_path + ".index"
+                archive_file = f"{pretrained_model_name_or_path}.index"
             else:
                 # set correct filename
                 if from_tf:
@@ -214,7 +218,6 @@ class PushToHubFriendlyModel(nn.Module, ModuleUtilsMixin, PushToHubMixin):
         else:
             resolved_archive_file = None
 
-        # load pt weights early so that we know which dtype to init the model under
         if from_pt:
             if state_dict is None:
                 try:

@@ -18,7 +18,7 @@ class Model(PushToHubFriendlyModel):
         self.preseqlen = args.prefix_tuning.prefix_sequence_length
         self.mid_dim = args.prefix_tuning.mid_dim
 
-        print("prefix-tuning sequence length is {}.".format(self.preseqlen))
+        print(f"prefix-tuning sequence length is {self.preseqlen}.")
 
         # Load tokenizer and model.
         self.tokenizer = AutoTokenizer.from_pretrained(args.bert.location, use_fast=False)
@@ -170,14 +170,14 @@ class Model(PushToHubFriendlyModel):
 
         result = []
         for i, key_val in enumerate(past_key_values):
-            temp = dict()
-            temp["decoder_prompt"] = {
-                "prev_key": key_val[0].contiguous(),
-                "prev_value": key_val[1].contiguous(),
-                "prev_key_padding_mask": torch.zeros(bsz, seqlen)
+            temp = {
+                "decoder_prompt": {
+                    "prev_key": key_val[0].contiguous(),
+                    "prev_value": key_val[1].contiguous(),
+                    "prev_key_padding_mask": torch.zeros(bsz, seqlen)
                     .to(key_val.device)
-                    .bool()
-                # bsz, preseqlen
+                    .bool(),
+                }
             }
             key_val_dec = past_key_values_dec[i]
             temp["cross_attention_prompt"] = {
@@ -289,12 +289,10 @@ class Model(PushToHubFriendlyModel):
         past_prompt = self.get_prompt(
             bsz=bsz, sample_size=kwargs['num_beams'], description=description_representation, knowledge=knowledge_representation,
         )
-        generated_ids = self.pretrain_model.generate(
+        return self.pretrain_model.generate(
             input_ids=input_ids,
             attention_mask=attention_mask,
             past_prompt=past_prompt,
             use_cache=True,
             **kwargs,
         )
-
-        return generated_ids

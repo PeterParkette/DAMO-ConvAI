@@ -5,7 +5,7 @@ from modelscope.trainers.nlp.document_grounded_dialog_retrieval_trainer import \
 
 with open('dev.json') as f_in:
     with open('input.jsonl', 'w') as f_out:
-        for line in f_in.readlines():
+        for line in f_in:
             sample = json.loads(line)
             sample['positive'] = ''
             sample['negative'] = ''

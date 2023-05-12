@@ -19,10 +19,7 @@ class DocumentQA(API):
     """
 
     def __init__(self, init_database=None) -> None:
-        if init_database != None:
-            self.database = init_database
-        else:
-            self.database = {}
+        self.database = init_database if init_database != None else {}
 
     def call(self, url: str, question: str) -> dict:
         """
@@ -69,7 +66,7 @@ class DocumentQA(API):
         """
         url = url.strip()
         question = question.strip()
-        if question == '':
+        if not question:
             raise Exception('The question is empty.')
         if url not in self.database:
             raise Exception('The document of this url failed to be processed.')
@@ -95,6 +92,4 @@ class DocumentQA(API):
             return False
         if response['output'] != groundtruth['output']:
             return False
-        if response['exception'] != groundtruth['exception']:
-            return False
-        return True
+        return response['exception'] == groundtruth['exception']

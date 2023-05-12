@@ -18,7 +18,7 @@ class Model(PushToHubFriendlyModel):
         self.preseqlen = args.prefix_tuning.prefix_sequence_length
         self.mid_dim = args.prefix_tuning.mid_dim
 
-        print("prefix-tuning sequence length is {}.".format(self.preseqlen))
+        print(f"prefix-tuning sequence length is {self.preseqlen}.")
         print("adapter is used.")
 
         # Load tokenizer and model.
@@ -29,12 +29,11 @@ class Model(PushToHubFriendlyModel):
         self.config = self.pretrain_model.config
         if args.model.use_prefix:
             from ..adapter.modeling_t5 import T5ForConditionalGeneration
-            if isinstance(self.pretrain_model, T5ForConditionalGeneration):
-                self.match_n_layer = self.config.num_decoder_layers
-                self.match_n_head = self.config.num_heads
-            else:
+            if not isinstance(self.pretrain_model, T5ForConditionalGeneration):
                 raise ValueError("Other models are not supported yet!")
 
+            self.match_n_layer = self.config.num_decoder_layers
+            self.match_n_head = self.config.num_heads
             self.n_embd = self.config.d_model
             assert self.n_embd % self.match_n_head == 0
             self.match_n_embd = self.n_embd // self.match_n_head
@@ -87,9 +86,8 @@ class Model(PushToHubFriendlyModel):
                     nn.Tanh(),
                     nn.Linear(self.mid_dim, self.match_n_layer * 2 * self.n_embd),
                 )
-        else:
-            if self.args.model.knowledge_usage == 'separate':
-                raise NotImplementedError()
+        elif self.args.model.knowledge_usage == 'separate':
+            raise NotImplementedError()
 
         if args.model.use_prefix:
             self.dropout = nn.Dropout(args.prefix_tuning.prefix_dropout)
@@ -173,14 +171,14 @@ class Model(PushToHubFriendlyModel):
 
         result = []
         for i, key_val in enumerate(past_key_values):
-            temp = dict()
-            temp["decoder_prompt"] = {
-                "prev_key": key_val[0].contiguous(),
-                "prev_value": key_val[1].contiguous(),
-                "prev_key_padding_mask": torch.zeros(bsz, seqlen)
+            temp = {
+                "decoder_prompt": {
+                    "prev_key": key_val[0].contiguous(),
+                    "prev_value": key_val[1].contiguous(),
+                    "prev_key_padding_mask": torch.zeros(bsz, seqlen)
                     .to(key_val.device)
-                    .bool()
-                # bsz, preseqlen
+                    .bool(),
+                }
             }
             key_val_dec = past_key_values_dec[i]
             temp["cross_attention_prompt"] = {
@@ -298,12 +296,10 @@ class Model(PushToHubFriendlyModel):
             )
         else:
             past_prompt = None
-        generated_ids = self.pretrain_model.generate(
+        return self.pretrain_model.generate(
             input_ids=input_ids,
             attention_mask=attention_mask,
             past_prompt=past_prompt,
             use_cache=True,
             **kwargs,
         )
-
-        return generated_ids

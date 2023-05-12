@@ -37,11 +37,11 @@ class OpenBankAccount(API):
         Returns:
         - is_correct (bool): whether the response is correct.
         """
-        if response['input'] == groundtruth['input'] and response['output'] == \
-                groundtruth['output'] and response['exception'] == groundtruth['exception']:
-            return True
-        else:
-            return False
+        return (
+            response['input'] == groundtruth['input']
+            and response['output'] == groundtruth['output']
+            and response['exception'] == groundtruth['exception']
+        )
 
     def call(self, account: str, password: str, name: str) -> dict:
         """

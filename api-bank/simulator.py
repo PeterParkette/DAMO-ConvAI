@@ -39,7 +39,7 @@ class Simulater():
     def run(self):
         while True:
             user_input = input('Please enter your message:\n')
-            user_input = '(User) ' + user_input
+            user_input = f'(User) {user_input}'
 
             logging.info(user_input)
 
@@ -54,7 +54,7 @@ class Simulater():
                 try:
                     result = self.tool_manager.api_call(api_name, **param_dict)
                 except Exception as e:
-                    api_result = '(API) ' + str(e)
+                    api_result = f'(API) {str(e)}'
                 else:
                     if result['exception']:
                         api_result = '(API) Exception: ' + str(result['exception'])

@@ -151,8 +151,9 @@ def serialize_schema_natural_language(
         f'{primary_key} is the primary key.'
     table_description = lambda table_name, column_names: \
         f'Table {table_name} has columns such as {", ".join(column_names)}.'
-    value_description = lambda column_value_pairs: \
-        f'{"".join(["The {} contains values such as {}.".format(column, value) for column, value in column_value_pairs])}'
+    value_description = (
+        lambda column_value_pairs: f'{"".join([f"The {column} contains values such as {value}." for column, value in column_value_pairs])}'
+    )
     foreign_key_description = lambda table_1, column_1, table_2, column_2: \
         f'The {column_1} of {table_1} is the foreign key of {column_2} of {table_2}.'
 
@@ -179,21 +180,20 @@ def serialize_schema_natural_language(
                 columns.append(column_str)
                 if column_id in db_primary_keys:
                     primary_keys.append(column_str)
-                if schema_serialization_with_db_content:
-                    matches = get_database_matches(
-                        question=question,
-                        table_name=table_name,
-                        column_name=y,
-                        db_path=(db_path + "/" + db_id + "/" + db_id + ".sqlite"),
-                    )
-                    if matches:
+                if matches := get_database_matches(
+                    question=question,
+                    table_name=table_name,
+                    column_name=y,
+                    db_path=f"{db_path}/{db_id}/{db_id}.sqlite",
+                ):
+                    if schema_serialization_with_db_content:
                         column_value_pairs.append((column_str, value_sep.join(matches)))
 
         table_description_columns_str = table_description(table_name_str, columns)
         descriptions.append(table_description_columns_str)
         table_description_primary_key_str = table_description_primary_key_template(table_name_str, ", ".join(primary_keys))
         descriptions.append(table_description_primary_key_str)
-        if len(column_value_pairs) > 0:
+        if column_value_pairs:
             value_description_str = value_description(column_value_pairs)
             descriptions.append(value_description_str)
 
@@ -248,7 +248,7 @@ def serialize_schema(
                 question=question,
                 table_name=table_name,
                 column_name=column_name,
-                db_path=(db_path + "/" + db_id + "/" + db_id + ".sqlite"),
+                db_path=f"{db_path}/{db_id}/{db_id}.sqlite",
             )
             if matches:
                 return column_str_with_values.format(
@@ -287,7 +287,7 @@ def serialize_schema(
 
 
 def _get_schemas(examples: Dataset) -> Dict[str, dict]:
-    schemas: Dict[str, dict] = dict()
+    schemas: Dict[str, dict] = {}
     for ex in examples:
         if ex["db_id"] not in schemas:
             schemas[ex["db_id"]] = {
@@ -328,7 +328,7 @@ class Constructor(object):
         self.args = args
 
     def to_seq2seq(self, raw_datasets: DatasetDict, cache_root: str):
-        if not len(raw_datasets) == 2:
+        if len(raw_datasets) != 2:
             raise AssertionError("Train, Dev sections of dataset expected.")
         if getattr(self.args.seq2seq, "few_shot_rate"):
             raw_train = random.sample(list(raw_datasets["train"]), int(self.args.seq2seq.few_shot_rate * len(raw_datasets["train"])))

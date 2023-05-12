@@ -18,10 +18,7 @@ class BookHotel(API):
     }
     database_name = 'Hotel'
     def __init__(self, init_database=None) -> None:
-        if init_database != None:
-            self.database = init_database
-        else:
-            self.database = {}
+        self.database = init_database if init_database != None else {}
 
     def dump_database(self, database_dir):
         json.dump(self.database, open(os.path.join(database_dir, 'Hotel.json'), 'w'), ensure_ascii=False)
@@ -37,10 +34,11 @@ class BookHotel(API):
         Returns:
         - is_correct (bool): whether the response is correct.
         """
-        if response['input'] == groundtruth['input'] and response['output'] == groundtruth['output'] and response['exception'] == groundtruth['exception']:
-            return True
-        else:
-            return False
+        return (
+            response['input'] == groundtruth['input']
+            and response['output'] == groundtruth['output']
+            and response['exception'] == groundtruth['exception']
+        )
         
     def call(self, hotel_name: str, check_in_time: str, check_out_time: str, room_count: int, adult_count: int, child_count: int) -> dict:
         """

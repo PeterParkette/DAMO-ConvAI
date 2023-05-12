@@ -29,9 +29,7 @@ class EvaluateTool(object):
         # Create a cursor object
         cursor = conn.cursor()
         cursor.execute(sql)
-        results = cursor.fetchall()
-
-        return results
+        return cursor.fetchall()
     
     def execute_model(self, sql, db_place, idx):
         try:
@@ -39,10 +37,10 @@ class EvaluateTool(object):
         except KeyboardInterrupt:
             sys.exit(0)
         except FunctionTimedOut:
-            result = [(f'timeout',)]
+            result = [('timeout', )]
         except Exception as e:
             # print('except:{}'.format(e))
-            result = [(f'error',)]  # possibly len(query) > 512 or not executable
+            result = [('error', )]
 
         result = {'sql_idx': idx, 'results': result}
         return result
@@ -52,7 +50,7 @@ class EvaluateTool(object):
         for i, sql in enumerate(sqls):
             # if i == 10:
             #     break
-            print('*************** processing {}th sql ***************'.format(i))
+            print(f'*************** processing {i}th sql ***************')
             print(sql)
             pool.apply_async(self.execute_model, args=(sql, db_places[i], i), callback=self.result_callback).get()
         pool.close()
@@ -72,19 +70,17 @@ class EvaluateTool(object):
             else:
                 mismatch_idx.append(i)
 
-        acc = (num_correct / num_queries) * 100
-
-        return acc
+        return (num_correct / num_queries) * 100
     
     def flatten_sqls(self, golds):
         sqls = []
         # db_ids = []
         db_places = []
-        for i, result_items in enumerate(golds):
+        for result_items in golds:
             sqls.append(result_items['query'])
             # db_ids.append(result_items['db_id'])
             db_places.append(result_items['db_path'] + '/' + result_items['db_id'] + '/' + result_items['db_id'] + '.sqlite')
-        
+
         return sqls, db_places
 
 

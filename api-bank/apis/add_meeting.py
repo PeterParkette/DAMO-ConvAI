@@ -30,10 +30,7 @@ class AddMeeting(API):
     database_name = 'Meeting'
 
     def __init__(self, init_database=None, token_checker=None) -> None:
-        if init_database != None:
-            self.database = init_database
-        else:
-            self.database = {}
+        self.database = init_database if init_database != None else {}
         self.token_checker = token_checker
 
     def check_api_call_correctness(self, response, groundtruth) -> bool:
@@ -49,19 +46,20 @@ class AddMeeting(API):
         """
         response_content, groundtruth_content = response['input']['meeting_topic'].split(" "), groundtruth['input'][
             'meeting_topic'].split(" ")
-        content_satisfied = False
-        if len(set(response_content).intersection(set(groundtruth_content))) / len(set(response_content).union(
-                set(groundtruth_content))) > 0.5:
-            content_satisfied = True
-
+        content_satisfied = (
+            len(set(response_content).intersection(set(groundtruth_content)))
+            / len(set(response_content).union(set(groundtruth_content)))
+            > 0.5
+        )
         response['input'].pop('meeting_topic')
         groundtruth['input'].pop('meeting_topic')
 
-        if content_satisfied and response['input'] == groundtruth['input'] and response['output'] == \
-                groundtruth['output'] and response['exception'] == groundtruth['exception']:
-            return True
-        else:
-            return False
+        return (
+            content_satisfied
+            and response['input'] == groundtruth['input']
+            and response['output'] == groundtruth['output']
+            and response['exception'] == groundtruth['exception']
+        )
 
     def call(self, token: str, meeting_topic: str, start_time: str, end_time: str, location: str,
              attendees: list) -> dict:
@@ -90,12 +88,12 @@ class AddMeeting(API):
         datetime.datetime.strptime(start_time, '%Y-%m-%d %H:%M:%S')
         datetime.datetime.strptime(end_time, '%Y-%m-%d %H:%M:%S')
 
-        if meeting_topic.strip() == "":
+        if not meeting_topic.strip():
             raise Exception('Meeting Topic should not be null')
         if not self.database.keys():
             id_now = 0
         else:
-            id_now = max([int(i) for i in self.database.keys()]) + 1
+            id_now = max(int(i) for i in self.database.keys()) + 1
         username = self.token_checker.check_token(token)
         self.database[str(id_now)] = {
             'username': username,

@@ -21,10 +21,7 @@ class DeleteReminder(API):
     database_name = 'Reminder'
 
     def __init__(self, init_database=None, token_checker=None) -> None:
-        if init_database != None:
-            self.database = init_database
-        else:
-            self.database = {}
+        self.database = init_database if init_database != None else {}
         self.token_checker = token_checker
 
     def check_api_call_correctness(self, response, groundtruth) -> bool:
@@ -39,15 +36,11 @@ class DeleteReminder(API):
         - is_correct (bool): whether the response is correct.
         """
         if groundtruth['output'] == 'success' and response['output'] == 'success':
-            if response['input']['time'] == groundtruth['input']['time']:
-                return True
-            else:
-                return False
-
-        if response['output'] == groundtruth['output'] and response['exception'] == groundtruth['exception']:
-            return True
-        else:
-            return False
+            return response['input']['time'] == groundtruth['input']['time']
+        return (
+            response['output'] == groundtruth['output']
+            and response['exception'] == groundtruth['exception']
+        )
 
     def call(self, token: str, content: str, time: str) -> dict:
         """
@@ -91,7 +84,7 @@ class DeleteReminder(API):
         # Check the format of the input parameters.
         datetime.datetime.strptime(time, '%Y-%m-%d %H:%M:%S')
 
-        if content.strip() == "":
+        if not content.strip():
             raise Exception('Content should not be null')
 
         delete = False

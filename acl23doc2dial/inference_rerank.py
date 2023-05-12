@@ -50,9 +50,8 @@ def main():
             "type": "document-grounded-dialog-rerank"
         }
     }
-    file_out = open(f'{model_dir}/configuration.json', 'w')
-    json.dump(model_configuration, file_out, indent=4)
-    file_out.close()
+    with open(f'{model_dir}/configuration.json', 'w') as file_out:
+        json.dump(model_configuration, file_out, indent=4)
     args = {
         'output': './',
         'max_batch_size': 64,
@@ -72,9 +71,7 @@ def main():
         model=model, preprocessor=mypreprocessor, **args)
 
     file_in = open('./input.jsonl', 'r')
-    all_querys = []
-    for every_query in file_in:
-        all_querys.append(json.loads(every_query))
+    all_querys = [json.loads(every_query) for every_query in file_in]
     passage_to_id = {}
     ptr = -1
     for file_name in ['fr', 'vi']:
@@ -91,9 +88,7 @@ def main():
     ids_list = []
     output_list = []
     positive_pids_list = []
-    ptr = -1
-    for x in tqdm(all_querys):
-        ptr += 1
+    for ptr, x in enumerate(tqdm(all_querys)):
         now_id = str(ptr)
         now_input = x
         now_wikipedia = []
@@ -112,7 +107,7 @@ def main():
     evaluate_dataset = {'input': input_list, 'id': ids_list, 'passages': passages_list, 'output': output_list,
                         'positive_pids': positive_pids_list}
     pipeline_ins(evaluate_dataset)
-    pipeline_ins.save(f'./rerank_output.jsonl')
+    pipeline_ins.save('./rerank_output.jsonl')
 
 
 if __name__ == '__main__':

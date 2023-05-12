@@ -11,10 +11,7 @@ class DeleteScene(API):
     database_name = 'Scenes'
     
     def __init__(self, init_database=None) -> None:
-        if init_database != None:
-            self.database = init_database
-        else:
-            self.database = {}
+        self.database = init_database if init_database != None else {}
 
     def call(self, name: str) -> dict:
         """
@@ -58,13 +55,13 @@ class DeleteScene(API):
         - success (str): whether the deletion is successful.
         """
         name = name.strip().lower()
-        if name == "":
+        if not name:
             raise Exception("Scene name cannot be empty.")
         if name in self.database:
             del self.database[name]
         else:
             raise Exception('The scene does not exist.')
-        
+
         return 'success'
 
     def check_api_call_correctness(self, response, groundtruth) -> bool:
@@ -86,7 +83,5 @@ class DeleteScene(API):
             return False
         if response['output'] != groundtruth['output']:
             return False
-        if response['exception'] != groundtruth['exception']:
-            return False
-        return True
+        return response['exception'] == groundtruth['exception']
     

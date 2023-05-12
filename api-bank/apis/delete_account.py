@@ -12,10 +12,7 @@ class DeleteAccount(API):
     }
     database_name = 'Account'
     def __init__(self, init_database=None, token_checker=None) -> None:
-        if init_database != None:
-            self.database = init_database
-        else:
-            self.database = {}
+        self.database = init_database if init_database != None else {}
         self.token_checker = token_checker
 
     def delete_account(self, token: str) -> str:
@@ -28,11 +25,11 @@ class DeleteAccount(API):
         Returns:
         - status (str): success or failed
         """
-        if self.token_checker != None:
-            self.token_checker.check_token(token)
-        else:
+        if self.token_checker is None:
             raise Exception('Lack of token checker.')
 
+        else:
+            self.token_checker.check_token(token)
         username = self.token_checker.check_token(token)
         if username in self.database:
             del self.database[username]
@@ -80,9 +77,10 @@ class DeleteAccount(API):
         Returns:
         - correctness (bool): True if the API call is correct, False otherwise.
         """
-        if response['input'] == groundtruth['input'] and response['output'] == groundtruth['output'] and response['exception'] == groundtruth['exception']:
-            return True
-        else:
-            return False
+        return (
+            response['input'] == groundtruth['input']
+            and response['output'] == groundtruth['output']
+            and response['exception'] == groundtruth['exception']
+        )
         
     

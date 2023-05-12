@@ -26,7 +26,7 @@ class ToolSearcher(API):
         for file in os.listdir(apis_dir):
             if file.endswith('.py') and file not in except_files:
                 api_file = file.split('.')[0]
-                module = importlib.import_module("apis." + api_file)
+                module = importlib.import_module(f"apis.{api_file}")
                 classes = [getattr(module, x) for x in dir(module) if isinstance(getattr(module, x), type)]
                 for cls in classes:
                     if issubclass(cls, API) and cls is not API:
@@ -37,7 +37,9 @@ class ToolSearcher(API):
         def api_summery(cls):
             cls_name = cls.__name__
             # split cls_name by capital letters
-            cls_name = ''.join([' ' + i.lower() if i.isupper() else i for i in cls_name]).strip()
+            cls_name = ''.join(
+                [f' {i.lower()}' if i.isupper() else i for i in cls_name]
+            ).strip()
             return cls_name + cls.description 
 
         # Get the description parameter for each class
@@ -54,16 +56,16 @@ class ToolSearcher(API):
                 })
                 if cls.__name__ == 'GetUserToken':
                     self.get_user_token_api = apis[-1]
-        
+
         assert hasattr(self, 'get_user_token_api'), 'GetUserToken API is not found.'
         self.apis = apis
 
     def check_api_call_correctness(self, response, groundtruth) -> bool:
         
-        if response['output'] == groundtruth['output'] and response['exception'] == groundtruth['exception']:
-            return True
-        else:
-            return False
+        return (
+            response['output'] == groundtruth['output']
+            and response['exception'] == groundtruth['exception']
+        )
 
     def call(self, keywords):
         """

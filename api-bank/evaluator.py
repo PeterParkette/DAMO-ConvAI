@@ -15,8 +15,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(level
 def calculate_rouge_l_score(reference, hypothesis):
     rouge = Rouge()
     scores = rouge.get_scores(hypothesis, reference)
-    rouge_l_score = scores[0]['rouge-l']['f']
-    return rouge_l_score
+    return scores[0]['rouge-l']['f']
 
 class Sample:
     def __init__(self, chat_history, apis, ground_truth):
@@ -25,7 +24,7 @@ class Sample:
         self.ground_truth = ground_truth
 
     def __repr__(self):
-        return 'Sample(chat_history={}, apis={}, ground_truth={})'.format(self.chat_history, self.apis, self.ground_truth)
+        return f'Sample(chat_history={self.chat_history}, apis={self.apis}, ground_truth={self.ground_truth})'
         # return 'Chat history: {}, apis: {}, ground truth: {}'.format(self.chat_history, self.apis, self.ground_truth)
 
     @classmethod
@@ -66,9 +65,9 @@ class Evaluator:
         apis = sample.apis
         chat_history = sample.chat_history
         tool_manager = ToolManager()
-        api_descriptions = []
-        for api_name in apis:
-            api_descriptions.append(tool_manager.get_api_description(api_name))
+        api_descriptions = [
+            tool_manager.get_api_description(api_name) for api_name in apis
+        ]
         api_descriptions = '\n'.join(api_descriptions)
         return api_descriptions, chat_history
 
@@ -82,7 +81,7 @@ class Evaluator:
         if ground_truth['role'] == 'API':
             api_name, param_dict = parse_api_call(model_output)
             if api_name != ground_truth['api_name']:
-                return False, 'API Name Mismatch: {} vs {}'.format(api_name, ground_truth['api_name'])
+                return False, f"API Name Mismatch: {api_name} vs {ground_truth['api_name']}"
             try:
                 result = tool_manager.api_call(api_name, **param_dict)
             except Exception as e:
@@ -92,7 +91,7 @@ class Evaluator:
                 correct = api.check_api_call_correctness(result, ground_truth['result'])
             except KeyError:
                 correct = False
-                result = 'KeyError' + str(result)
+                result = f'KeyError{str(result)}'
             return correct, result
         elif ground_truth['role'] == 'AI':
             score = calculate_rouge_l_score(ground_truth['text'], model_output)
@@ -102,21 +101,14 @@ class Evaluator:
 def get_api_call(model_output):
     api_call_pattern = r"\[(\w+)\((.*)\)\]"
     api_call_pattern = re.compile(api_call_pattern)
-    match = api_call_pattern.search(model_output)
-    if match:
-        return match.group(0)
-    else:
-        return None
+    return match[0] if (match := api_call_pattern.search(model_output)) else None
 
 if __name__ == '__main__':
     data_dir = 'lv1-lv2-samples/level-1-given-desc'
     api_test_enabled = False
     dialog_test_enabled = True
 
-    if os.path.basename(data_dir).endswith('given-desc'):
-        tool_search_enabled = False
-    else:
-        tool_search_enabled = True
+    tool_search_enabled = not os.path.basename(data_dir).endswith('given-desc')
     chatgpt = DavinciWrapper(api_key='YOUR_API_KEY')
     api_call_prompt = '''
 Based on the given API description and the existing conversation history 1..t, please generate the API request that the AI should call in step t+1 and output it in the format of [ApiName(key1='value1', key2='value2', ...)], replace the ApiName with the actual API name, and replace the key and value with the actual parameters. 
@@ -158,8 +150,7 @@ API descriptions:
     for file in tqdm(jsonl_files, desc='Processing files', ncols=100):
         history = []
         with open(os.path.join(data_dir, file), 'r') as f:
-            for line in f:
-                history.append(json.loads(line))
+            history.extend(json.loads(line) for line in f)
         samples = Sample.from_chat_history(history)
         evaluator = Evaluator(samples)
 
@@ -184,9 +175,18 @@ API descriptions:
                         chat_content = item['text']
                     elif item['role'] == 'API':
                         chat_role = 'system'
-                        chat_content = '[{}({})] Response: {}'.format(item['api_name'], ', '.join(['{}=\'{}\''.format(k, v) for k, v in item['param_dict'].items()]), str(item['result']['output']))
+                        chat_content = '[{}({})] Response: {}'.format(
+                            item['api_name'],
+                            ', '.join(
+                                [
+                                    f"{k}=\'{v}\'"
+                                    for k, v in item['param_dict'].items()
+                                ]
+                            ),
+                            str(item['result']['output']),
+                        )
                     else:
-                        raise ValueError('Invalid chat role: {}'.format(item['role']))
+                        raise ValueError(f"Invalid chat role: {item['role']}")
                     messages.append({'role': chat_role, 'content': chat_content})
 
                 response = chatgpt.call(messages)
@@ -200,16 +200,18 @@ API descriptions:
                     try:
                         correct, model_output_result = evaluator.evaluate(sample_id, api_call)
                     except AssertionError as e:
-                        if not 'The API name is not correct.' in str(e):
+                        if 'The API name is not correct.' not in str(e):
                             raise e
-                        logging.info('AssertionError: {}'.format(e))
+                        logging.info(f'AssertionError: {e}')
                         correct = False
                 else:
                     model_output_result = 'No API call found'
                     correct = False
                 if correct:
                     correct_api_calls += 1
-                    logging.info('Correct API call: {} Ground truth: {}'.format(api_call, sample.ground_truth))
+                    logging.info(
+                        f'Correct API call: {api_call} Ground truth: {sample.ground_truth}'
+                    )
                 else:                    
                     logging.info('Incorrect model output: {} Result: {} Ground truth: {} File: {} Sample ID: {} Messages: {}'.format(model_output.replace('\n', ' '), model_output_result, sample.ground_truth, file, sample_id, messages[1:]))
                 total_api_calls += 1
@@ -228,9 +230,18 @@ API descriptions:
                         chat_content = item['text']
                     elif item['role'] == 'API':
                         chat_role = 'system'
-                        chat_content = '[{}({})] Response: {}'.format(item['api_name'], ', '.join(['{}=\'{}\''.format(k, v) for k, v in item['param_dict'].items()]), str(item['result']['output']))
+                        chat_content = '[{}({})] Response: {}'.format(
+                            item['api_name'],
+                            ', '.join(
+                                [
+                                    f"{k}=\'{v}\'"
+                                    for k, v in item['param_dict'].items()
+                                ]
+                            ),
+                            str(item['result']['output']),
+                        )
                     else:
-                        raise ValueError('Invalid chat role: {}'.format(item['role']))
+                        raise ValueError(f"Invalid chat role: {item['role']}")
                     messages.append({'role': chat_role, 'content': chat_content})
                 response = chatgpt.call(messages)
                 if isinstance(chatgpt, ChatGPTWrapper):
@@ -238,10 +249,7 @@ API descriptions:
                 else:
                     model_output = response['choices'][0]['text'].strip()
 
-                if model_output:
-                    score = evaluator.evaluate(sample_id, model_output)
-                else:
-                    score = 0    
+                score = evaluator.evaluate(sample_id, model_output) if model_output else 0
                 rougel_scores.append(score)
                 if score < 0.2:
                     logging.info('Low score: {} Score: {} Ground truth: {} File: {} Sample ID: {} Messages: {}'.format(model_output.replace('\n', ' '), score, sample.ground_truth, file, sample_id, messages[1:]))
@@ -251,9 +259,9 @@ API descriptions:
         print('Dialog score: {:.4f}'.format(np.mean(rougel_scores)))
 
     if api_test_enabled:
-        print('Total API calls: {}'.format(total_api_calls))
-        print('Correct API calls: {}'.format(correct_api_calls))
+        print(f'Total API calls: {total_api_calls}')
+        print(f'Correct API calls: {correct_api_calls}')
         print('Accuracy: {:.4f}'.format(correct_api_calls / total_api_calls))
-        logging.info('Total API calls: {}'.format(total_api_calls))
-        logging.info('Correct API calls: {}'.format(correct_api_calls))
+        logging.info(f'Total API calls: {total_api_calls}')
+        logging.info(f'Correct API calls: {correct_api_calls}')
         logging.info('Accuracy: {:.4f}'.format(correct_api_calls / total_api_calls))

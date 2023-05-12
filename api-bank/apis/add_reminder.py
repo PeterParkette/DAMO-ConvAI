@@ -22,10 +22,7 @@ class AddReminder(API):
     database_name = 'Reminder'
 
     def __init__(self, init_database=None, token_checker=None) -> None:
-        if init_database != None:
-            self.database = init_database
-        else:
-            self.database = {}
+        self.database = init_database if init_database != None else {}
         self.token_checker = token_checker
 
     def check_api_call_correctness(self, response, groundtruth) -> bool:
@@ -41,16 +38,17 @@ class AddReminder(API):
         """
         assert response['api_name'] == groundtruth['api_name'], "The API name is not correct."
         response_content, groundtruth_content = response['input']['content'].lower().split(" "), groundtruth['input']['content'].lower().split(" ")
-        content_satisfied = False
-        if len(set(response_content).intersection(set(groundtruth_content))) / len(set(response_content).union(
-                set(groundtruth_content))) > 0.5:
-            content_satisfied = True
-
-        if content_satisfied and response['input']['time'] == groundtruth['input']['time'] and response['output'] == \
-                groundtruth['output'] and response['exception'] == groundtruth['exception']:
-            return True
-        else:
-            return False
+        content_satisfied = (
+            len(set(response_content).intersection(set(groundtruth_content)))
+            / len(set(response_content).union(set(groundtruth_content)))
+            > 0.5
+        )
+        return (
+            content_satisfied
+            and response['input']['time'] == groundtruth['input']['time']
+            and response['output'] == groundtruth['output']
+            and response['exception'] == groundtruth['exception']
+        )
 
     def call(self, token: str, content: str, time: str) -> dict:
         """
@@ -94,12 +92,12 @@ class AddReminder(API):
         # Check the format of the input parameters.
         datetime.datetime.strptime(time, '%Y-%m-%d %H:%M:%S')
 
-        if content.strip() == "":
+        if not content.strip():
             raise Exception('Content should not be null')
         if not self.database.keys():
             id_now = 0
         else:
-            id_now = max([int(i)for i in self.database.keys()]) + 1
+            id_now = max(int(i) for i in self.database.keys()) + 1
         username = self.token_checker.check_token(token)
         self.database[str(id_now)] = {
             'username': username,

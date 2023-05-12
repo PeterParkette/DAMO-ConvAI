@@ -84,12 +84,12 @@ def predict(model_type, system_msg, inputs, top_p, temperature, chatbot=[], back
             "top_p":1.0,
             "n" : 1,
         }
-        
+
     if system_prompt:
         all_history.append(system_prompt)
     logging.info(f"Logging : user input is - {inputs}")
-    all_history.append({"role": "user", "content": "(User) " + inputs})
-    history.append({"role": "user", "content": "(User) " + inputs})
+    all_history.append({"role": "user", "content": f"(User) {inputs}"})
+    history.append({"role": "user", "content": f"(User) {inputs}"})
     messages = all_history.copy()
     backend = history_to_backend(backend_history)
     chat = history_to_chat(history)
@@ -99,20 +99,30 @@ def predict(model_type, system_msg, inputs, top_p, temperature, chatbot=[], back
     logging.info(f"Logging : payload is - {payload}")
 
     response = gpt.call(messages, **payload)
-    model_output = response['choices'][0]['message']['content']          
+    model_output = response['choices'][0]['message']['content']
     while get_api_call(model_output):
-        logging.info(f"Logging : api detected model_output is - {model_output}")  
-        backend_history.append({"role": "assistant", "content": "(API Call) " + get_api_call(model_output)})
-        all_history.append({"role": "assistant", "content": "(API Call) " + get_api_call(model_output)})
+        logging.info(f"Logging : api detected model_output is - {model_output}")
+        backend_history.append(
+            {
+                "role": "assistant",
+                "content": f"(API Call) {get_api_call(model_output)}",
+            }
+        )
+        all_history.append(
+            {
+                "role": "assistant",
+                "content": f"(API Call) {get_api_call(model_output)}",
+            }
+        )
         backend = history_to_backend(backend_history)
         chat = history_to_chat(history)
         yield chat, backend, history, backend_history, all_history, response  
-        
+
         api_name, param_dict = parse_api_call(model_output)
         try:
             result = tool_manager.api_call(api_name, **param_dict)
         except Exception as e:
-            api_result = '(API) ' + str(e)
+            api_result = f'(API) {str(e)}'
         else:
             if result['exception']:
                 api_result = '(API) Exception: ' + str(result['exception'])

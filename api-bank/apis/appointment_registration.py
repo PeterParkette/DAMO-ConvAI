@@ -15,10 +15,7 @@ class AppointmentRegistration(API):
     database_name = 'Appointments'
     
     def __init__(self, init_database=None) -> None:
-        if init_database != None:
-            self.database = init_database
-        else:
-            self.database = {}
+        self.database = init_database if init_database != None else {}
 
     def call(self, patient_name: str, date: str, doctor_name: str) -> dict:
         """
@@ -59,9 +56,7 @@ class AppointmentRegistration(API):
         date = date.strip()
         split_date = date.split('-')
         if len(split_date) == 3:
-            if len(split_date[0]) == 4:
-                pass
-            else:
+            if len(split_date[0]) != 4:
                 split_date[0] = split_date[0].zfill(4)
             date = '-'.join(split_date)
         try:
@@ -84,9 +79,9 @@ class AppointmentRegistration(API):
         """
         patient_name = patient_name.strip()
         doctor_name = doctor_name.strip()
-        if patient_name == '' or doctor_name == '':
+        if not patient_name or not doctor_name:
             raise Exception('Patient name or doctor name cannot be empty.')
-        
+
         date = self.format_check(date)
         if isinstance(date, Exception):
             raise date
@@ -123,8 +118,8 @@ class AppointmentRegistration(API):
         appointment_id = str(random.randint(10000000, 99999999))
         while appointment_id in self.database:
             appointment_id = str(random.randint(10000000, 99999999))
-        
-        
+
+
         self.database[appointment_id] = {
             'patient_name': patient_name,
             'date': date,
@@ -142,16 +137,17 @@ class AppointmentRegistration(API):
         groundtruth_patient_name = groundtruth['input']['patient_name'].strip()
         groundtruth_date = self.format_check(groundtruth['input']['date'])
         groundtruth_doctor_name = groundtruth['input']['doctor_name'].strip()
-        groundtruth_appointment_id = groundtruth['output']
-        groundtruth_exception = groundtruth['exception']
         if response_patient_name != groundtruth_patient_name:
             return False
         if response_date != groundtruth_date:
             return False
         if response_doctor_name != groundtruth_doctor_name:
             return False
-        if groundtruth_appointment_id == None and response_appointment_id != None:
-            return False
-        if response_exception != groundtruth_exception:
-            return False
-        return True
+        groundtruth_appointment_id = groundtruth['output']
+        groundtruth_exception = groundtruth['exception']
+        return (
+            False
+            if groundtruth_appointment_id is None
+            and response_appointment_id != None
+            else response_exception == groundtruth_exception
+        )

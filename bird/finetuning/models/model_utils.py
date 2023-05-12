@@ -154,7 +154,7 @@ class PoolingFunction(nn.Module):
             a = torch.softmax(e, dim=1).unsqueeze(1)
             outputs = torch.bmm(a, inputs).squeeze(1)
         else:
-            raise ValueError('[Error]: Unrecognized pooling method %s !' % (self.method))
+            raise ValueError(f'[Error]: Unrecognized pooling method {self.method} !')
         outputs = self.mapping_function(outputs)
         return outputs
 
@@ -184,7 +184,7 @@ class Registrable(object):
     def register(name):
         def register_class(cls):
             if name in Registrable.registered_components:
-                raise RuntimeError('class %s already registered' % name)
+                raise RuntimeError(f'class {name} already registered')
 
             Registrable.registered_components[name] = cls
             return cls

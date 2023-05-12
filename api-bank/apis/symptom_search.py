@@ -11,10 +11,7 @@ class SymptomSearch(API):
     database_name = 'Symptom'
 
     def __init__(self, init_database=None) -> None:
-        if init_database != None:
-            self.database = init_database
-        else:
-            self.database = {}
+        self.database = init_database if init_database != None else {}
 
     def call(self, symptom: str) -> dict:
         """
@@ -97,8 +94,10 @@ class SymptomSearch(API):
         if symptom not in self.database:
             raise Exception('The symptom does not exist.')
         results = self.database[symptom]
-        results = [{"name":item["name"],"description":item["description"]} for item in results]
-        return results
+        return [
+            {"name": item["name"], "description": item["description"]}
+            for item in results
+        ]
     
     def check_api_call_correctness(self, response, groundtruth) -> bool:
         """
@@ -117,15 +116,12 @@ class SymptomSearch(API):
         groundtruth_symptom = self.format_check(groundtruth_symptom)
         if response_symptom != groundtruth_symptom:
             return False
-        
+
         response_results = response['output']
         groundtruth_results = groundtruth['output']
         if response_results != groundtruth_results:
             return False
-        
+
         response_exception = response['exception']
         groundtruth_exception = groundtruth['exception']
-        if response_exception != groundtruth_exception:
-            return False
-        
-        return True
+        return response_exception == groundtruth_exception

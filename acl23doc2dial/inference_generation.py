@@ -9,7 +9,7 @@ with open('all_passages/id_to_passage.json') as f:
 
 eval_dataset = []
 with open('rerank_output.jsonl') as f:
-    for line in f.readlines():
+    for line in f:
         sample = json.loads(line)
         eval_dataset.append({
             'query': sample['input'],

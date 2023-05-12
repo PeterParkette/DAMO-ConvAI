@@ -14,10 +14,7 @@ class QueryStock(API):
     database_name = 'Stock'
     
     def __init__(self, init_database=None) -> None:
-        if init_database != None:
-            self.database = init_database
-        else:
-            self.database = {}
+        self.database = init_database if init_database != None else {}
 
     def call(self, stock_code, date) -> dict:
         """
@@ -59,15 +56,11 @@ class QueryStock(API):
         stock_code = stock_code.upper().strip()
         if stock_code == '':
             stock_code = None
-        
+
         date = date.strip()
         split_date = date.split('-')
-        if len(split_date) != 3:
-            pass
-        else:
-            if len(split_date[0]) == 4:
-                pass
-            else:
+        if len(split_date) == 3:
+            if len(split_date[0]) != 4:
                 split_date[0] = split_date[0].zfill(4)
             date = '-'.join(split_date)
         try:
@@ -92,17 +85,17 @@ class QueryStock(API):
 
         # Check the format of the input parameters.
         stock_code, date = self.format_check(stock_code, date)
-        if stock_code == None:
+        if stock_code is None:
             raise Exception('The stock code cannot be empty.')
         if isinstance(date, Exception):
             raise date
-        
+
         # Check if the query is valid.
         if stock_code not in self.database:
             raise Exception('The stock code does not exist.')
         if date not in self.database[stock_code]:
             raise Exception('The stock price of this date is not maintained.')
-        
+
         # Return the stock price.
         """
         database = {
@@ -129,8 +122,9 @@ class QueryStock(API):
         response_stock_code, response_date = self.format_check(response_stock_code, response_date)
         groundtruth_stock_code, groundtruth_date = self.format_check(groundtruth_stock_code, groundtruth_date)
 
-        if response_stock_code == groundtruth_stock_code and response_date == groundtruth_date and response['output'] == \
-            groundtruth['output'] and response['exception'] == groundtruth['exception']:
-                return True
-        else:
-            return False
+        return (
+            response_stock_code == groundtruth_stock_code
+            and response_date == groundtruth_date
+            and response['output'] == groundtruth['output']
+            and response['exception'] == groundtruth['exception']
+        )

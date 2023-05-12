@@ -14,10 +14,7 @@ class SendEmail(API):
     }
 
     def __init__(self, init_database=None) -> None:
-        if init_database != None:
-            self.database = init_database
-        else:
-            self.database = {}
+        self.database = init_database if init_database != None else {}
 
     def call(self, receiver: str, subject: str, content: str) -> dict:
         """
@@ -82,20 +79,15 @@ class SendEmail(API):
             """
             # email regex
             regex = re.compile(r"^[a-z0-9]+[\._]?[a-z0-9]+[@]\w+[.]\w{2,3}$")
-            if regex.match(email):
-                return True
-            else:
-                return False
+            return bool(regex.match(email))
 
-        if check_email(receiver):
-            pass
-        else:
+        if not check_email(receiver):
             raise Exception('Email address of the receiver is invalid.')
 
-        if subject == '':
+        if not subject:
             raise Exception('Subject cannot be empty.')
-        
-        if content == '':
+
+        if not content:
             raise Exception('Content cannot be empty.')
 
         return "success"
@@ -117,8 +109,11 @@ class SendEmail(API):
         groundtruth_subject = groundtruth['input']['subject'].strip()
         response_content = response['input']['content'].strip()
         groundtruth_content = groundtruth['input']['content'].strip()
-        if response_receiver == groundtruth_receiver and response_subject == groundtruth_subject and response_content == groundtruth_content and response['output'] == groundtruth['output'] and response['exception'] == groundtruth['exception']:
-            return True
-        else:
-            return False
+        return (
+            response_receiver == groundtruth_receiver
+            and response_subject == groundtruth_subject
+            and response_content == groundtruth_content
+            and response['output'] == groundtruth['output']
+            and response['exception'] == groundtruth['exception']
+        )
         

@@ -30,10 +30,7 @@ class QueryMeeting(API):
     database_name = 'Meeting'
 
     def __init__(self, init_database=None, token_checker=None) -> None:
-        if init_database != None:
-            self.database = init_database
-        else:
-            self.database = {}
+        self.database = init_database if init_database != None else {}
         self.token_checker = token_checker
 
 
@@ -50,19 +47,20 @@ class QueryMeeting(API):
         """
         response_content, groundtruth_content = response['input']['meeting_topic'].split(" "), groundtruth['input'][
             'meeting_topic'].split(" ")
-        content_satisfied = False
-        if len(set(response_content).intersection(set(groundtruth_content))) / len(set(response_content).union(
-                set(groundtruth_content))) > 0.5:
-            content_satisfied = True
-
+        content_satisfied = (
+            len(set(response_content).intersection(set(groundtruth_content)))
+            / len(set(response_content).union(set(groundtruth_content)))
+            > 0.5
+        )
         response['input'].pop('meeting_topic')
         groundtruth['input'].pop('meeting_topic')
 
-        if content_satisfied and response['input'] == groundtruth['input'] and response['output'] == \
-                groundtruth['output'] and response['exception'] == groundtruth['exception']:
-            return True
-        else:
-            return False
+        return (
+            content_satisfied
+            and response['input'] == groundtruth['input']
+            and response['output'] == groundtruth['output']
+            and response['exception'] == groundtruth['exception']
+        )
 
     def call(self, token: str, meeting_topic: str, start_time: str, end_time: str, location: str,
              attendees: list) -> dict:
@@ -93,7 +91,7 @@ class QueryMeeting(API):
             datetime.datetime.strptime(end_time, '%Y-%m-%d %H:%M:%S')
 
 
-        if meeting_topic.strip() == "" and not start_time:
+        if not meeting_topic.strip() and not start_time:
             raise Exception('Meeting Topic and start_time should not be null both')
 
         username = self.token_checker.check_token(token)
@@ -105,4 +103,4 @@ class QueryMeeting(API):
             raise Exception(f'You have no meeting about {meeting_topic}')
         if start_time:
             raise Exception(f'You have no meeting at time : {start_time}')
-        return Exception(f'Error')
+        return Exception('Error')

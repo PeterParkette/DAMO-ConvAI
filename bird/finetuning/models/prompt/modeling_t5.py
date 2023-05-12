@@ -135,7 +135,7 @@ def load_tf_weights_in_t5(model, config, tf_checkpoint_path):
                     pointer = getattr(pointer, "final_layer_norm")
             elif scope_names[0] == "scale":
                 pointer = getattr(pointer, "weight")
-            elif scope_names[0] == "output_bias" or scope_names[0] == "beta":
+            elif scope_names[0] in ["output_bias", "beta"]:
                 pointer = getattr(pointer, "bias")
             elif scope_names[0] == "squad":
                 pointer = getattr(pointer, "classifier")
@@ -579,8 +579,7 @@ class T5LayerSelfAttention(nn.Module):
             prefix=prefix,  # TODO: Chen
         )
         hidden_states = hidden_states + self.dropout(attention_output[0])
-        outputs = (hidden_states,) + attention_output[1:]  # add attentions if we output them
-        return outputs
+        return (hidden_states,) + attention_output[1:]
 
 
 class T5LayerCrossAttention(nn.Module):
@@ -617,8 +616,7 @@ class T5LayerCrossAttention(nn.Module):
             prefix=prefix,  # TODO: Chen
         )
         layer_output = hidden_states + self.dropout(attention_output[0])
-        outputs = (layer_output,) + attention_output[1:]  # add attentions if we output them
-        return outputs
+        return (layer_output,) + attention_output[1:]
 
 
 class T5Block(nn.Module):
@@ -685,8 +683,10 @@ class T5Block(nn.Module):
             clamp_value = torch.finfo(hidden_states.dtype).max - 1000
             hidden_states = torch.clamp(hidden_states, min=-clamp_value, max=clamp_value)
 
-        do_cross_attention = self.is_decoder and encoder_hidden_states is not None
-        if do_cross_attention:
+        if (
+            do_cross_attention := self.is_decoder
+            and encoder_hidden_states is not None
+        ):
             # the actual query length is unknown for cross attention
             # if using past key value states. Need to inject it here
             if present_key_value_state is not None:
@@ -753,12 +753,11 @@ class T5PreTrainedModel(PreTrainedModel):
     def dummy_inputs(self):
         input_ids = torch.tensor(DUMMY_INPUTS)
         input_mask = torch.tensor(DUMMY_MASK)
-        dummy_inputs = {
+        return {
             "decoder_input_ids": input_ids,
             "input_ids": input_ids,
             "decoder_attention_mask": input_mask,
         }
-        return dummy_inputs
 
     def _init_weights(self, module):
         """Initialize the weights"""
@@ -837,7 +836,10 @@ class T5Stack(T5PreTrainedModel):
         self.is_decoder = config.is_decoder
 
         self.block = nn.ModuleList(
-            [T5Block(config, has_relative_attention_bias=bool(i == 0)) for i in range(config.num_layers)]
+            [
+                T5Block(config, has_relative_attention_bias=i == 0)
+                for i in range(config.num_layers)
+            ]
         )
         self.final_layer_norm = T5LayerNorm(config.d_model, eps=config.layer_norm_epsilon)
         self.dropout = nn.Dropout(config.dropout_rate)
@@ -855,12 +857,16 @@ class T5Stack(T5PreTrainedModel):
         )
         assert_device_map(self.device_map, len(self.block))
         self.model_parallel = True
-        self.first_device = "cpu" if "cpu" in self.device_map.keys() else "cuda:" + str(min(self.device_map.keys()))
-        self.last_device = "cuda:" + str(max(self.device_map.keys()))
+        self.first_device = (
+            "cpu"
+            if "cpu" in self.device_map.keys()
+            else f"cuda:{str(min(self.device_map.keys()))}"
+        )
+        self.last_device = f"cuda:{str(max(self.device_map.keys()))}"
         # Load onto devices
         for k, v in self.device_map.items():
             for layer in v:
-                cuda_device = "cuda:" + str(k)
+                cuda_device = f"cuda:{str(k)}"
                 self.block[layer] = self.block[layer].to(cuda_device)
 
         # Set embed_tokens to first layer
@@ -1078,8 +1084,8 @@ class T5Stack(T5PreTrainedModel):
             # Model Parallel: If it's the last layer for that device, put things on the next device
             if self.model_parallel:
                 for k, v in self.device_map.items():
-                    if i == v[-1] and "cuda:" + str(k) != self.last_device:
-                        hidden_states = hidden_states.to("cuda:" + str(k + 1))
+                    if i == v[-1] and f"cuda:{str(k)}" != self.last_device:
+                        hidden_states = hidden_states.to(f"cuda:{str(k + 1)}")
 
         hidden_states = self.final_layer_norm(hidden_states)
         hidden_states = self.dropout(hidden_states)
@@ -1847,7 +1853,7 @@ class T5EncoderModel(T5PreTrainedModel):
         """
         return_dict = return_dict if return_dict is not None else self.config.use_return_dict
 
-        encoder_outputs = self.encoder(
+        return self.encoder(
             input_ids=input_ids,
             attention_mask=attention_mask,
             inputs_embeds=inputs_embeds,
@@ -1856,5 +1862,3 @@ class T5EncoderModel(T5PreTrainedModel):
             output_hidden_states=output_hidden_states,
             return_dict=return_dict,
         )
-
-        return encoder_outputs

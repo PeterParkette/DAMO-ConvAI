@@ -33,34 +33,36 @@ def collate(batch):
 
 def prepare_optimizer(model, lr, weight_decay, eps):
     no_decay = ['bias', 'LayerNorm.weight']
-    optimizer_grouped_parameters = [{
-        'params': [
-            p for n, p in model.named_parameters()
-            if not any(nd in n for nd in no_decay)
-        ],
-        'weight_decay':
-            weight_decay,
-    }, {
-        'params': [
-            p for n, p in model.named_parameters()
-            if any(nd in n for nd in no_decay)
-        ],
-        'weight_decay':
-            0.0,
-    }]
-    optimizer = AdamW(optimizer_grouped_parameters, lr=lr, eps=eps)
-    return optimizer
+    optimizer_grouped_parameters = [
+        {
+            'params': [
+                p
+                for n, p in model.named_parameters()
+                if all(nd not in n for nd in no_decay)
+            ],
+            'weight_decay': weight_decay,
+        },
+        {
+            'params': [
+                p
+                for n, p in model.named_parameters()
+                if any(nd in n for nd in no_decay)
+            ],
+            'weight_decay': 0.0,
+        },
+    ]
+    return AdamW(optimizer_grouped_parameters, lr=lr, eps=eps)
 
 
 def prepare_scheduler(optimizer, epochs, steps_per_epoch, warmup_rate):
     total_steps = epochs * steps_per_epoch
     warmup_steps = int(total_steps * warmup_rate)
-    scheduler = get_scheduler(
+    return get_scheduler(
         name='linear',
         optimizer=optimizer,
         num_warmup_steps=warmup_steps,
-        num_training_steps=total_steps)
-    return scheduler
+        num_training_steps=total_steps,
+    )
 
 
 def normalize_answer(s):
@@ -89,8 +91,7 @@ def f1_score(prediction, ground_truth):
         return 0
     precision = 1.0 * num_same / len(prediction_tokens)
     recall = 1.0 * num_same / len(ground_truth_tokens)
-    f1 = (2 * precision * recall) / (precision + recall)
-    return f1
+    return (2 * precision * recall) / (precision + recall)
 
 
 def exact_match_score(prediction, ground_truth):
@@ -121,8 +122,6 @@ def matching_evaluate(references, predictions):
 
 
 def measure_result(result_dict):
-    meters = dict()
-
     hypothesis_list = [
         x.replace('<extra_id_0>', '') for x in result_dict['outputs']
     ]
@@ -134,8 +133,7 @@ def measure_result(result_dict):
 
     # F1
     f1, em = matching_evaluate(reference_list, hypothesis_list)
-    meters['f1'] = f1
-
+    meters = {'f1': f1}
     # SacreBleu
     bleu_score = [
         sacrebleu.sentence_bleu(hypothesis, [reference]).score
@@ -224,7 +222,7 @@ def train(trainer,
             )
 
         meters = evaluate(trainer, batch_size=batch_size)
-        total_score = sum([x for x in meters.values()])
+        total_score = sum(list(meters.values()))
         if total_score >= best_score:
             best_score = total_score
             model_path = os.path.join(trainer.model.model_dir,
@@ -252,7 +250,7 @@ def evaluate(trainer, batch_size=16, checkpoint_path=None):
     trainer.model.model.eval()
     with torch.no_grad():
         results = {'outputs': [], 'targets': []}
-        for index, payload in enumerate(tqdm.tqdm(valid_loader)):
+        for payload in tqdm.tqdm(valid_loader):
             query, context, label = payload
             query = [
                 tokenizer.decode(

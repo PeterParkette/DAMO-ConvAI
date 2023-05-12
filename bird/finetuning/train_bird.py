@@ -129,7 +129,7 @@ def main() -> None:
                                     seq2seq_eval_dataset) if seq2seq_eval_dataset else None
     # test_dataset = TokenizedDataset(args, training_args, model_tokenizer,
     #                                 seq2seq_test_dataset) if seq2seq_test_dataset else None
-    
+
 
     # Initialize our Trainer
     early_stopping_callback = EarlyStoppingCallback(early_stopping_patience=args.seq2seq.patience if args.seq2seq.patience else 5)
@@ -158,15 +158,17 @@ def main() -> None:
     if args.load_multiple_prefix_module_weights_from:
         reconstruct_state_dict = OrderedDict()
 
+        MULTI_PREFIX_ATTR_NAME = "multi_prefix"
         # load prefix modules
         for task_name, module_weight_location in args.load_multiple_prefix_module_weights_from:
             state_dict = torch.load(os.path.join(module_weight_location, transformers.WEIGHTS_NAME), map_location="cpu")
-            MULTI_PREFIX_ATTR_NAME = "multi_prefix"
             for weight_name, stored_tensor in state_dict.items():
                 if str(weight_name).startswith("pretrain_model"):
                     continue  # skip the pretrained model and we will load a new one from another place
-                reconstruct_state_dict['{}.{}.{}'.format(MULTI_PREFIX_ATTR_NAME, "_".join(task_name.split("_")[:-1]), weight_name)] = stored_tensor
-                # extract the prefix part and add them to dict
+                reconstruct_state_dict[
+                    f'{MULTI_PREFIX_ATTR_NAME}.{"_".join(task_name.split("_")[:-1])}.{weight_name}'
+                ] = stored_tensor
+                            # extract the prefix part and add them to dict
 
         # give it into the model
         trainer.model.load_state_dict(reconstruct_state_dict, strict=False)

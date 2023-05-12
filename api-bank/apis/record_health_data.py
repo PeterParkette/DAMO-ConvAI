@@ -14,10 +14,7 @@ class RecordHealthData(API):
     database_name = 'HealthData'
 
     def __init__(self, init_database=None) -> None:
-        if init_database != None:
-            self.database = init_database
-        else:
-            self.database = {}
+        self.database = init_database if init_database != None else {}
 
     def call(self, user_id: str, time: str, health_data: list = None) -> dict:
         """
@@ -58,9 +55,7 @@ class RecordHealthData(API):
         time = time.strip()
         split_time = time.split('-')
         if len(split_time) == 3:
-            if len(split_time[0]) == 4:
-                pass
-            else:
+            if len(split_time[0]) != 4:
                 split_time[0] = split_time[0].zfill(4)
             time = '-'.join(split_time)
         try:
@@ -73,14 +68,14 @@ class RecordHealthData(API):
         user_id = user_id.upper().strip()
         if user_id == '':
             user_id = None
-        if user_id == None:
+        if user_id is None:
             raise Exception('The user id cannot be empty.')
-        
+
         time = self.format_check(time)
         if isinstance(time, Exception):
             raise time
 
-        if health_data == None:
+        if health_data is None:
             raise Exception('The health data cannot be empty.')
         if len(health_data) == 0:
             raise Exception('The health data cannot be empty.')
@@ -88,7 +83,7 @@ class RecordHealthData(API):
         for data in health_data:
             if 'name' not in data:
                 raise Exception('The health data has invalid format.')
-            
+
             if data['name'] not in health_data_set:
                 health_data_set.add(data['name'])
             else:
@@ -96,16 +91,13 @@ class RecordHealthData(API):
 
         if user_id not in self.database:
             self.database[user_id] = []
-        
+
         to_be_updated = None
         for record in self.database[user_id]:
             if record['time'] == time:
                 to_be_updated = record
-        
-        if to_be_updated != None:
-            for data in health_data:
-                to_be_updated[data['name']] = data['value']
-        else:
+
+        if to_be_updated is None:
             new_record = {
                 'time': time,
             }
@@ -113,6 +105,9 @@ class RecordHealthData(API):
                 new_record[data['name']] = data['value']
             self.database[user_id].append(new_record)
 
+        else:
+            for data in health_data:
+                to_be_updated[data['name']] = data['value']
         return 'success'
 
     def check_api_call_correctness(self, response, groundtruth) -> bool:
@@ -141,7 +136,7 @@ class RecordHealthData(API):
         groundtruth_health_data = [{"name":str(i["name"]),"value":str(i["value"])} for i in groundtruth_health_data]
         response_health_data.sort(key=lambda x: str(x))
         groundtruth_health_data.sort(key=lambda x: str(x))
-        
+
 
         if response_user_id != groundtruth_user_id:
             return False
@@ -151,6 +146,4 @@ class RecordHealthData(API):
             return False
         if response['output'] != groundtruth['output']:
             return False
-        if response['exception'] != groundtruth['exception']:
-            return False
-        return True
+        return response['exception'] == groundtruth['exception']

@@ -16,10 +16,7 @@ class TimedSwitch(API):
     database_name = 'TimeSwitch'
 
     def __init__(self, init_database=None) -> None:
-        if init_database != None:
-            self.database = init_database
-        else:
-            self.database = {}
+        self.database = init_database if init_database != None else {}
 
     def call(self, name: str, time: str, on: bool) -> dict:
         """
@@ -60,9 +57,7 @@ class TimedSwitch(API):
         time = time.strip()
         split_time = time.split('-')
         if len(split_time) == 3:
-            if len(split_time[0]) == 4:
-                pass
-            else:
+            if len(split_time[0]) != 4:
                 split_time[0] = split_time[0].zfill(4)
             time = '-'.join(split_time)
         try:
@@ -85,32 +80,26 @@ class TimedSwitch(API):
         """
         
         name = name.strip().lower()
-        if name == '':
+        if not name:
             raise Exception('Name cannot be empty.')
         time = self.format_check(time)
         if isinstance(time, Exception):
             raise time
         if name not in self.database:
             self.database[name] = []
-            self.database[name].append(
-                {
-                    'time': time,
-                    'on': on,
-                }
-            )
-            return "success"
         else:
             for i in range(len(self.database[name])):
                 if self.database[name][i]['time'] == time:
                     self.database[name][i]['on'] = on
                     return "success"
-            self.database[name].append(
-                {
-                    'time': time,
-                    'on': on,
-                }
-            )
-            return "success"
+
+        self.database[name].append(
+            {
+                'time': time,
+                'on': on,
+            }
+        )
+        return "success"
         
     
     def check_api_call_correctness(self, response, groundtruth) -> bool:
@@ -134,6 +123,4 @@ class TimedSwitch(API):
             return False
         if response['output'] != groundtruth['output']:
             return False
-        if response['exception'] != groundtruth['exception']:
-            return False
-        return True
+        return response['exception'] == groundtruth['exception']

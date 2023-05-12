@@ -43,10 +43,7 @@ class SearchEngine(API):
     """
 
     def __init__(self, init_database=None) -> None:
-        if init_database != None:
-            self.database = init_database
-        else:
-            self.database = {}
+        self.database = init_database if init_database != None else {}
         self.bm25 = BM25Okapi(self.database['tokenized_documents'])
 
     def call(self, keyword: str) -> dict:
@@ -95,9 +92,7 @@ class SearchEngine(API):
         rankings = np.argsort(-np.array(self.bm25.get_scores(query)))
         if len(rankings) > 2:
             rankings = rankings[:2]
-        results = [self.database["raw_documents"][i] for i in rankings]
-   
-        return results
+        return [self.database["raw_documents"][i] for i in rankings]
     
     def check_api_call_correctness(self, response, groundtruth) -> bool:
         """
@@ -118,7 +113,5 @@ class SearchEngine(API):
             response_output = sorted(response['output'], key=lambda x: x['title']+x['abstract'], reverse=True)
         if groundtruth['output'] != None:
             groundtruth_output = sorted(groundtruth['output'], key=lambda x: x['title']+x['abstract'], reverse=True)
-        if response_output != groundtruth_output:
-            return False
-        return True
+        return response_output == groundtruth_output
 

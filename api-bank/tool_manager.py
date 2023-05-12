@@ -14,12 +14,13 @@ class ToolManager:
         for file in os.listdir(apis_dir):
             if file.endswith('.py') and file not in except_files:
                 api_file = file.split('.')[0]
-                module = importlib.import_module("apis." + api_file)
+                module = importlib.import_module(f"apis.{api_file}")
                 classes = [getattr(module, x) for x in dir(module) if isinstance(getattr(module, x), type)]
-                for cls in classes:
-                    if issubclass(cls, API) and cls is not API:
-                        all_apis.append(cls)
-
+                all_apis.extend(
+                    cls
+                    for cls in classes
+                    if issubclass(cls, API) and cls is not API
+                )
         classes = all_apis
 
         self.init_databases = {}
@@ -46,7 +47,7 @@ class ToolManager:
                 if hasattr(cls, 'database_name') and cls.database_name in self.init_databases:
                     cls_info['init_database'] = self.init_databases[cls.database_name]
                 apis.append(cls_info)
-        
+
         self.apis = apis
         self.inited_tools = {}
         self.token_checker = self.init_tool('CheckToken')
@@ -120,19 +121,19 @@ class ToolManager:
         processed_parameters = []
         for this_para, input_para in zip(parameters, input_parameters):
             para_type = input_para['type']
-            if para_type == 'int':
-                assert this_para.isdigit(), 'invalid parameter type. parameter: {}'.format(this_para)
-                processed_parameters.append(int(this_para))
-            elif para_type == 'float':
+            if para_type == 'float':
                 assert this_para.replace('.', '', 1).isdigit(), 'invalid parameter type.'
                 processed_parameters.append(float(this_para))
+            elif para_type == 'int':
+                assert this_para.isdigit(), f'invalid parameter type. parameter: {this_para}'
+                processed_parameters.append(int(this_para))
             elif para_type == 'str':
                 processed_parameters.append(this_para)
             else:
                 raise Exception('invalid parameter type.')
         return processed_parameters
     
-    def api_call(self, tool_name: str, **kwargs): 
+    def api_call(self, tool_name: str, **kwargs):
         """
         Calls the API with the given name and parameters.
         """
@@ -140,41 +141,48 @@ class ToolManager:
         # assert len(kwargs) == len(input_parameters), 'invalid number of parameters. expected: {}, got: {}'.format(len(input_parameters), len(kwargs))
 
         processed_parameters = {}
-        for input_key in kwargs:
-            input_value = kwargs[input_key]
-            assert input_key in input_parameters, 'invalid parameter name. parameter: {}'.format(input_key)
+        for input_key, input_value in kwargs.items():
+            assert (
+                input_key in input_parameters
+            ), f'invalid parameter name. parameter: {input_key}'
             required_para = input_parameters[input_key]
 
             required_type = required_para['type']
-            if required_type == 'int':
-                assert input_value.isdigit(), 'invalid parameter type. parameter: {}'.format(input_value)
-                processed_parameters[input_key] = int(input_value)
+            if required_type == 'bool':
+                processed_parameters[input_key] = input_value == 'True'
             elif required_type == 'float':
                 assert input_value.replace('.', '', 1).isdigit(), 'invalid parameter type.'
                 processed_parameters[input_key] = float(input_value)
+            elif required_type == 'int':
+                assert (
+                    input_value.isdigit()
+                ), f'invalid parameter type. parameter: {input_value}'
+                processed_parameters[input_key] = int(input_value)
+            elif required_type in ['list(str)', 'list']:
+                input_value = input_value.replace('\'', '"')
+                processed_parameters[input_key] = json.loads(input_value)
             elif required_type == 'str':
                 processed_parameters[input_key] = input_value
-            elif required_type == 'list(str)':
-                input_value = input_value.replace('\'', '"')
-                processed_parameters[input_key] = json.loads(input_value)
-            elif required_type == 'list':
-                input_value = input_value.replace('\'', '"')
-                processed_parameters[input_key] = json.loads(input_value)
-            elif required_type == 'bool':
-                processed_parameters[input_key] = input_value == 'True'
             else:
                 raise Exception('invalid parameter type.')
-        
+
         tool = self.init_tool(tool_name)
-        result = tool.call(**processed_parameters)
-        return result
+        return tool.call(**processed_parameters)
     
     def command_line(self):
         """
         Starts the command line interface for the tool manager.
         """
         mode = 'function_call' # 'function_call' or 'qa'
-        if mode == 'qa':
+        if mode == 'function_call':
+            while True:
+                command = input('Please enter the command for the tool you want to use: \n')
+                if command == 'exit':
+                    break
+                api_name, param_dict = parse_api_call(command)
+                print(self.api_call(api_name, **param_dict))
+
+        elif mode == 'qa':
             while True:
                 tool_keywords = input('Please enter the keywords for the tool you want to use (\'exit\' to exit):\n')
                 tool_searcher = self.init_tool('ToolSearcher')
@@ -185,17 +193,9 @@ class ToolManager:
                     command = input('Please enter the parameters for the tool you want to use (\'exit\' to exit): \n')
                     if command == 'exit':
                         break
-                    else:
-                        command = command.replace(' ', '')
-                        processed_parameters = self.process_parameters(response['output']['name'], command.split(','))
-                        print(tool.call(*processed_parameters))
-        elif mode == 'function_call':
-            while True:
-                command = input('Please enter the command for the tool you want to use: \n')
-                if command == 'exit':
-                    break
-                api_name, param_dict = parse_api_call(command)
-                print(self.api_call(api_name, **param_dict))
+                    command = command.replace(' ', '')
+                    processed_parameters = self.process_parameters(response['output']['name'], command.split(','))
+                    print(tool.call(*processed_parameters))
 
     def list_all_apis(self):
         """
