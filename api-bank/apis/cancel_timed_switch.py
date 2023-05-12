@@ -15,10 +15,7 @@ class CancelTimedSwitch(API):
     database_name = 'TimeSwitch'
 
     def __init__(self, init_database=None) -> None:
-        if init_database != None:
-            self.database = init_database
-        else:
-            self.database = {}
+        self.database = init_database if init_database != None else {}
 
     def call(self, name: str, time: str) -> dict:
         """
@@ -57,9 +54,7 @@ class CancelTimedSwitch(API):
         time = time.strip()
         split_time = time.split('-')
         if len(split_time) == 3:
-            if len(split_time[0]) == 4:
-                pass
-            else:
+            if len(split_time[0]) != 4:
                 split_time[0] = split_time[0].zfill(4)
             time = '-'.join(split_time)
         try:
@@ -75,14 +70,17 @@ class CancelTimedSwitch(API):
         time = self.format_check(time)
         if isinstance(time, Exception):
             raise time
-        
+
         if name not in self.database:
             raise Exception('device name does not exist.')
-        time_index = -1
-        for i in range(len(self.database[name])):
-            if self.database[name][i]['time'] == time:
-                time_index = i
-                break
+        time_index = next(
+            (
+                i
+                for i in range(len(self.database[name]))
+                if self.database[name][i]['time'] == time
+            ),
+            -1,
+        )
         if time_index == -1:
             raise Exception('time does not exist.')
         self.database[name].pop(time_index)
@@ -105,6 +103,4 @@ class CancelTimedSwitch(API):
             return False
         if response['output'] != groundtruth['output']:
             return False
-        if response['exception'] != groundtruth['exception']:
-            return False
-        return True
+        return response['exception'] == groundtruth['exception']

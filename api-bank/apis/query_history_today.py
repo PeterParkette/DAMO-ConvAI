@@ -13,10 +13,7 @@ class QueryHistoryToday(API):
     database_name = 'History'
 
     def __init__(self, init_database=None) -> None:
-        if init_database != None:
-            self.database = init_database
-        else:
-            self.database = {}
+        self.database = init_database if init_database != None else {}
     
     def call(self, date) -> dict:
         """
@@ -53,16 +50,12 @@ class QueryHistoryToday(API):
         """
         date = date.strip()
         split_date = date.split('-')
-        
-        if len(split_date) != 3:
-            pass
-        else:
-            if len(split_date[0]) == 4:
-                pass
-            else:
+
+        if len(split_date) == 3:
+            if len(split_date[0]) != 4:
                 split_date[0] = split_date[0].zfill(4)
             date = '-'.join(split_date)
-        
+
         try:
             datetime.datetime.strptime(date, '%Y-%m-%d')
         except Exception:
@@ -74,7 +67,7 @@ class QueryHistoryToday(API):
                 date = datetime.datetime.strptime(date, '%m-%d').strftime('%m-%d')
         else:
             date = datetime.datetime.strptime(date, '%Y-%m-%d').strftime('%m-%d')
-        
+
         return date
 
     def query_history_today(self, date) -> list:
@@ -91,14 +84,15 @@ class QueryHistoryToday(API):
         date = self.filter_date_format(date)
         if isinstance(date, ValueError):
             raise date
-        
+
         if date not in self.database:
             raise Exception('The date is not in the database.')
-        
+
         history = self.database[date]
-        history = ["Title: {}, Date: {}, Description: {}".format(history[i]['Title'].strip(), history[i]['Date'].strip(), history[i]['Description'].strip()) for i in range(len(history))]
-        
-        return history
+        return [
+            f"Title: {history[i]['Title'].strip()}, Date: {history[i]['Date'].strip()}, Description: {history[i]['Description'].strip()}"
+            for i in range(len(history))
+        ]
     
     def check_api_call_correctness(self, response, groundtruth) -> bool:
         response_date = self.filter_date_format(response['input']['date'])
@@ -107,9 +101,10 @@ class QueryHistoryToday(API):
         response_history = response['output']
         groundtruth_history = groundtruth['output']
 
-        if response_date == groundtruth_date and response_history == groundtruth_history and response['exception'] == groundtruth['exception']:
-            return True
-        else:
-            return False
+        return (
+            response_date == groundtruth_date
+            and response_history == groundtruth_history
+            and response['exception'] == groundtruth['exception']
+        )
         
 

@@ -36,22 +36,21 @@ class MultiTaskWrapper(Dataset):
             meta_args.task_id2task_name = task_id2task_name
             meta_args.task_name2task_id = {task_name: task_id for task_id, task_name in enumerate(task_id2task_name)}
 
-        # Raw data and size.
-        args_path2data = {}
-        for args_path, dataset in args_path2dataset.items():
-            args_path2data[args_path] = [dataset[idx] for idx in range(len(dataset))]
-
+        args_path2data = {
+            args_path: [dataset[idx] for idx in range(len(dataset))]
+            for args_path, dataset in args_path2dataset.items()
+        }
         # Up-weight.
         temp = meta_args.dataset.upsample_temp
         if temp and temp != 1 and section == 'train':
-            # Dataset statistics.
-            args_path2size = {}
-            for args_path, data in args_path2data.items():
-                args_path2size[args_path] = len(data)
-
+            args_path2size = {
+                args_path: len(data) for args_path, data in args_path2data.items()
+            }
             # Compute resampling weights.
             args_path2upsample = {}
-            sum_tau_size = sum([np.exp(np.log(size) / temp) for size in args_path2size.values()])
+            sum_tau_size = sum(
+                np.exp(np.log(size) / temp) for size in args_path2size.values()
+            )
             sum_size = sum(args_path2size.values())
             for args_path, size in args_path2size.items():
                 tau_size = np.exp(np.log(size) / temp)
@@ -60,7 +59,7 @@ class MultiTaskWrapper(Dataset):
             # Compute upsampling weights.
             largest_args_path, _ = max(args_path2size.items(), key=lambda x: x[1])
             norm_coef = args_path2upsample[largest_args_path]
-            for args_path in args_path2upsample.keys():
+            for args_path in args_path2upsample:
                 args_path2upsample[args_path] = args_path2upsample[args_path] / norm_coef
 
             # Upsample.
@@ -89,8 +88,7 @@ class MultiTaskWrapper(Dataset):
 
         # Subset for dev.
         if section == 'dev' and meta_args.dataset.eval_num:
-            for args_path in args_path2data.keys():
-                full_data = args_path2data[args_path]
+            for args_path, full_data in args_path2data.items():
                 eval_num = meta_args.dataset.eval_num
                 if eval_num < len(full_data):
                     stride = 1.0 * len(full_data) / eval_num

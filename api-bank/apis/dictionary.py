@@ -12,10 +12,7 @@ class Dictionary(API):
     }
     
     def __init__(self, init_database=None) -> None:
-        if init_database != None:
-            self.database = init_database
-        else:
-            self.database = {}
+        self.database = init_database if init_database != None else {}
 
     def call(self, keyword: str) -> dict:
         """
@@ -58,13 +55,13 @@ class Dictionary(API):
         - results (dict): the results from the search.
         """
         keyword = keyword.replace('_', ' ').strip().lower()
-        url = 'https://api.dictionaryapi.dev/api/v2/entries/en_US/' + keyword
+        url = f'https://api.dictionaryapi.dev/api/v2/entries/en_US/{keyword}'
         response = requests.get(url)
         if response.status_code == 200:
             res = response.json()[0]
         else:
             raise Exception("Failed.")
-        
+
         return res["meanings"]
         
     def check_api_call_correctness(self, response, groundtruth) -> bool:
@@ -82,7 +79,5 @@ class Dictionary(API):
             return False
         if response['output'] != groundtruth['output']:
             return False
-        if response['exception'] != groundtruth['exception']:
-            return False
-        return True
+        return response['exception'] == groundtruth['exception']
         

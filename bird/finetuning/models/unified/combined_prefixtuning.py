@@ -24,7 +24,10 @@ def aggregate_prompt(
             bsz = len(task_names_list)
             prompt_of_this_task = past_prompt_dict[task_name]
             if not constructed_prompt:
-                constructed_prompt = [{k: {_k: _v for _k, _v in v.items()} for k, v in item.items()} for item in prompt_of_this_task]
+                constructed_prompt = [
+                    {k: dict(v.items()) for k, v in item.items()}
+                    for item in prompt_of_this_task
+                ]
                 continue
             for layer_number, prompt_of_this_task_in_this_layer in enumerate(
                 prompt_of_this_task
@@ -40,46 +43,28 @@ def aggregate_prompt(
                         "prev_value",
                         "prev_key_padding_mask",
                     ]:
-                        if key_value_attention_mask == "prev_key_padding_mask":
-                            constructed_prompt_layer[prompt_pos][
-                                key_value_attention_mask
-                            ] = torch.cat(
-                                [
-                                    constructed_prompt_layer[prompt_pos][
-                                        key_value_attention_mask
-                                    ],
-                                    prompt_of_this_task[layer_number][prompt_pos][
-                                        key_value_attention_mask
-                                    ],
+                        constructed_prompt_layer[prompt_pos][
+                            key_value_attention_mask
+                        ] = torch.cat(
+                            [
+                                constructed_prompt_layer[prompt_pos][
+                                    key_value_attention_mask
                                 ],
-                                dim=0,
-                            )
-                        else:
-                            #print(constructed_prompt_layer[prompt_pos][
-                            #          key_value_attention_mask
-                            #      ].shape)
-                            constructed_prompt_layer[prompt_pos][
-                                key_value_attention_mask
-                            ] = torch.cat(
-                                [
-                                    constructed_prompt_layer[prompt_pos][
-                                        key_value_attention_mask
-                                    ],
-                                    prompt_of_this_task[layer_number][prompt_pos][
-                                        key_value_attention_mask
-                                    ],
+                                prompt_of_this_task[layer_number][prompt_pos][
+                                    key_value_attention_mask
                                 ],
-                                dim=0,
-                            )
-                            # concat in the dim of the bsz
-                            # TODO: add code of attention padding when with different prefix len.
-
+                            ],
+                            dim=0,
+                        )
     elif strategy in ["simple_concat", "concat_with_new_prefix"]:
         for task_name, prompt_of_this_task in past_prompt_dict.items():
             if task_name == "new_prefix":
                 continue
             if not constructed_prompt:
-                constructed_prompt = [{k: {_k: _v for _k, _v in v.items()} for k, v in item.items()} for item in prompt_of_this_task]
+                constructed_prompt = [
+                    {k: dict(v.items()) for k, v in item.items()}
+                    for item in prompt_of_this_task
+                ]
                 continue
             for layer_number, prompt_of_this_task_in_this_layer in enumerate(
                 prompt_of_this_task
@@ -124,9 +109,7 @@ def aggregate_prompt(
                                 dim=2,
                             )
                             # concat in the dim of the prefix_len
-    elif strategy == "gnn":
-        pass
-    else:
+    elif strategy != "gnn":
         raise ValueError("Other strategy has been implemented yet!!")
 
     if strategy in ["separate_with_new_prefix", "concat_with_new_prefix"]:
@@ -422,13 +405,14 @@ class Model(PushToHubFriendlyModel):
 
         result = []
         for i, key_val in enumerate(past_key_values):
-            temp = dict()
-            temp["decoder_prompt"] = {
-                "prev_key": key_val[0].contiguous(),
-                "prev_value": key_val[1].contiguous(),
-                "prev_key_padding_mask": torch.zeros(bsz, seqlen)
-                .to(key_val.device)
-                .bool(),
+            temp = {
+                "decoder_prompt": {
+                    "prev_key": key_val[0].contiguous(),
+                    "prev_value": key_val[1].contiguous(),
+                    "prev_key_padding_mask": torch.zeros(bsz, seqlen)
+                    .to(key_val.device)
+                    .bool(),
+                }
             }
             key_val_dec = past_key_values_dec[i]
             temp["cross_attention_prompt"] = {
@@ -626,12 +610,10 @@ class Model(PushToHubFriendlyModel):
             strategy=self.args.model.prefix_agg_strategy
         )
 
-        generated_ids = self.pretrain_model.generate(
+        return self.pretrain_model.generate(
             input_ids=input_ids,
             attention_mask=attention_mask,
             past_prompt=past_prompt,
             use_cache=True,
             **kwargs,
         )
-
-        return generated_ids

@@ -10,10 +10,7 @@ class PlayMusic(API):
     }
 
     def __init__(self, init_database=None) -> None:
-        if init_database != None:
-            self.database = init_database
-        else:
-            self.database = {}
+        self.database = init_database if init_database != None else {}
 
     def call(self, music_name: str) -> dict:
         """
@@ -56,11 +53,10 @@ class PlayMusic(API):
         - status (str): the corresponding url scheme to trigger the music player.
         """
 
-        music_name = music_name.lower().strip()
-        if music_name == '':
+        if music_name := music_name.lower().strip():
+            return f"music://{music_name}"
+        else:
             raise Exception('The music name cannot be empty.')
-        
-        return "music://{}".format(music_name)
     
     def check_api_call_correctness(self, response, groundtruth):
         """
@@ -73,7 +69,4 @@ class PlayMusic(API):
         Returns:
         - correctness (bool): whether the API call is correct.
         """
-        if response['output'] == groundtruth['output']:
-            return True
-        else:
-            return False
+        return response['output'] == groundtruth['output']

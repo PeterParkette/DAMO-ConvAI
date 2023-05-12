@@ -17,10 +17,7 @@ class AddAlarm(API):
     database_name = 'Alarm'
 
     def __init__(self, init_database=None, token_checker=None) -> None:
-        if init_database != None:
-            self.database = init_database
-        else:
-            self.database = {}
+        self.database = init_database if init_database != None else {}
         self.token_checker = token_checker
 
     def check_api_call_correctness(self, response, groundtruth) -> bool:
@@ -34,11 +31,11 @@ class AddAlarm(API):
         Returns:
         - is_correct (bool): whether the response is correct.
         """
-        if response['input'] == groundtruth['input'] and response['output'] == \
-                groundtruth['output'] and response['exception'] == groundtruth['exception']:
-            return True
-        else:
-            return False
+        return (
+            response['input'] == groundtruth['input']
+            and response['output'] == groundtruth['output']
+            and response['exception'] == groundtruth['exception']
+        )
 
     def call(self, token:str, time: str) -> dict:
         """

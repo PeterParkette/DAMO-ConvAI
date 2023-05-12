@@ -29,7 +29,7 @@ class Relation_init():
 
         if special_tokens:
             # self.tokenizer.add_tokens([v for k, v in special_tokens])
-            self.tokenizer.add_tokens([v for v in special_tokens])
+            self.tokenizer.add_tokens(list(special_tokens))
             self.pretrain_model.resize_token_embeddings(len(self.tokenizer))
 
         # import graph part:
@@ -67,14 +67,11 @@ class Relation_init():
         relation_prompt_input_ids_total = torch.cat(tmp_relations_input_ids, dim=0)
         relation_prompt_attention_mask_total = torch.cat(tmp_relations_attention_matrix, dim=0)
 
-        
-        relation_init_emb = self.pretrain_model.encoder(
+
+        return self.pretrain_model.encoder(
             input_ids=relation_prompt_input_ids_total,
             attention_mask=relation_prompt_attention_mask_total,
         )
-        
-
-        return relation_init_emb
 
 
 if __name__ == "__main__":

@@ -13,10 +13,7 @@ class GetUserToken(API):
     }
     database_name = 'Account'
     def __init__(self, init_database=None) -> None:
-        if init_database != None:
-            self.database = init_database
-        else:
-            self.database = {}
+        self.database = init_database if init_database != None else {}
 
     def get_user_token(self, username: str, password: str) -> str:
         """
@@ -80,10 +77,11 @@ class GetUserToken(API):
         Returns:
         - is_correct (bool): whether the response is correct.
         """
-        if response['input'] == groundtruth['input'] and response['output'] == groundtruth['output'] and response['exception'] == groundtruth['exception']:
-            return True
-        else:
-            return False
+        return (
+            response['input'] == groundtruth['input']
+            and response['output'] == groundtruth['output']
+            and response['exception'] == groundtruth['exception']
+        )
         
     def dump_database(self, database_dir):
         json.dump(self.database, open(os.path.join(database_dir, 'Account.json'), 'w'), ensure_ascii=False)

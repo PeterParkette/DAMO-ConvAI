@@ -25,10 +25,11 @@ class Calculator(API):
         re_formula = response['input']['formula'].replace(' ', '')
         gt_formula = groundtruth['input']['formula'].replace(' ', '')
 
-        if re_formula == gt_formula and response['output'] == groundtruth['output'] and response['exception'] == groundtruth['exception']:
-            return True
-        else:
-            return False
+        return (
+            re_formula == gt_formula
+            and response['output'] == groundtruth['output']
+            and response['exception'] == groundtruth['exception']
+        )
 
     def call(self, formula: str) -> float:
         """
@@ -72,10 +73,7 @@ class Calculator(API):
         # Convert the formula to a list
         formula = self.convert_formula_to_list(formula)
 
-        # Calculate the result
-        result = self.calculate_formula(formula)
-
-        return result
+        return self.calculate_formula(formula)
     
     def is_valid_formula(self, formula: str) -> bool:
         """
@@ -88,7 +86,7 @@ class Calculator(API):
         - is_valid (bool): True if the formula is valid, False otherwise.
         """
         # Check if the formula is empty
-        if len(formula) == 0:
+        if not formula:
             return False
 
         # Check if the formula contains invalid characters
@@ -105,10 +103,9 @@ class Calculator(API):
             return False
 
         # Check if the formula contains an invalid number of operands
-        if formula.count('+') + formula.count('-') + formula.count('*') + formula.count('/') + 1 == len(formula):
-            return False
-
-        return True
+        return formula.count('+') + formula.count('-') + formula.count(
+            '*'
+        ) + formula.count('/') + 1 != len(formula)
     
     def convert_formula_to_list(self, formula: str) -> list:
         """

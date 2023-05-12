@@ -32,11 +32,9 @@ class Model(PushToHubFriendlyModel):
         return {'loss': loss}
 
     def generate(self, input_ids, attention_mask, **kwargs):
-        generated_ids = self.pretrain_model.generate(
+        return self.pretrain_model.generate(
             input_ids=input_ids,
             attention_mask=attention_mask,
             use_cache=True,
             **kwargs,
         )
-
-        return generated_ids

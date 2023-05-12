@@ -14,10 +14,7 @@ class ModifyRegistration(API):
     database_name = 'Appointments'
 
     def __init__(self, init_database=None) -> None:
-        if init_database != None:
-            self.database = init_database
-        else:
-            self.database = {}
+        self.database = init_database if init_database != None else {}
 
     def call(self, appointment_id: str, new_appointment_date: str = None, new_appointment_doctor: str = None) -> dict:
         """
@@ -58,9 +55,7 @@ class ModifyRegistration(API):
         date = date.strip()
         split_date = date.split('-')
         if len(split_date) == 3:
-            if len(split_date[0]) == 4:
-                pass
-            else:
+            if len(split_date[0]) != 4:
                 split_date[0] = split_date[0].zfill(4)
             date = '-'.join(split_date)
         try:
@@ -89,33 +84,33 @@ class ModifyRegistration(API):
             new_appointment_date = self.format_check(new_appointment_date)
         if new_appointment_doctor != None:
             new_appointment_doctor = new_appointment_doctor.strip()
-            if new_appointment_doctor == '':
+            if not new_appointment_doctor:
                 raise Exception('Fail because the doctor name is empty.')
 
         # Check if the input parameters are valid.
         if isinstance(new_appointment_date, Exception):
             raise new_appointment_date
-        if new_appointment_date == None and new_appointment_doctor == None:
+        if new_appointment_date is None and new_appointment_doctor is None:
             raise Exception('Fail because no modification is made.')
-        if new_appointment_date == None:
+        if new_appointment_date is None:
             assert new_appointment_doctor != None
             if new_appointment_doctor == self.database[appointment_id]['doctor_name']:
                 raise Exception('Fail because doctor is not changed.')
-            self.database[appointment_id]['doctor_name'] = new_appointment_doctor
-        else: # new_appointment_date != None
-            if new_appointment_doctor == None:
-                if new_appointment_date == self.database[appointment_id]['date']:
-                    raise Exception('Fail because date is not changed.')
-                self.database[appointment_id]['date'] = new_appointment_date
-            else: # new_appointment_date != None and new_appointment_doctor != None
-                if new_appointment_date == self.database[appointment_id]['date'] and new_appointment_doctor == self.database[appointment_id]['doctor_name']:
-                    raise Exception('Fail because no modification is made.')
-                if new_appointment_date == self.database[appointment_id]['date']:
-                    raise Exception('Fail because date is not changed.')
-                if new_appointment_doctor == self.database[appointment_id]['doctor_name']:
-                    raise Exception('Fail because doctor is not changed.')
-                self.database[appointment_id]['date'] = new_appointment_date
+            else:
                 self.database[appointment_id]['doctor_name'] = new_appointment_doctor
+        elif new_appointment_doctor is None:
+            if new_appointment_date == self.database[appointment_id]['date']:
+                raise Exception('Fail because date is not changed.')
+            self.database[appointment_id]['date'] = new_appointment_date
+        else: # new_appointment_date != None and new_appointment_doctor != None
+            if new_appointment_date == self.database[appointment_id]['date'] and new_appointment_doctor == self.database[appointment_id]['doctor_name']:
+                raise Exception('Fail because no modification is made.')
+            if new_appointment_date == self.database[appointment_id]['date']:
+                raise Exception('Fail because date is not changed.')
+            if new_appointment_doctor == self.database[appointment_id]['doctor_name']:
+                raise Exception('Fail because doctor is not changed.')
+            self.database[appointment_id]['date'] = new_appointment_date
+            self.database[appointment_id]['doctor_name'] = new_appointment_doctor
         return 'success'
     
     def check_api_call_correctness(self, response, groundtruth) -> bool:
@@ -139,21 +134,16 @@ class ModifyRegistration(API):
         # Check formats of input parameters.
         response_appointment_id = response_appointment_id.strip()
         groundtruth_appointment_id = groundtruth_appointment_id.strip()
-        
+
         if response_new_appointment_date != None:
             response_new_appointment_date = self.format_check(response_new_appointment_date)
         if groundtruth_new_appointment_date != None:
             groundtruth_new_appointment_date = self.format_check(groundtruth_new_appointment_date)
-        
+
         if response_new_appointment_doctor != None:
             response_new_appointment_doctor = response_new_appointment_doctor.strip()
         if groundtruth_new_appointment_doctor != None:
             groundtruth_new_appointment_doctor = groundtruth_new_appointment_doctor.strip()
-        
-        response_output = response['output']
-        groundtruth_output = groundtruth['output']
-        response_exception = response['exception']
-        groundtruth_exception = groundtruth['exception']
 
         if response_appointment_id != groundtruth_appointment_id:
             return False
@@ -161,9 +151,14 @@ class ModifyRegistration(API):
             return False
         if response_new_appointment_doctor != groundtruth_new_appointment_doctor:
             return False
-        if response_output != groundtruth_output:
-            return False
-        if response_exception != groundtruth_exception:
-            return False
-        return True
+        response_output = response['output']
+        groundtruth_output = groundtruth['output']
+        response_exception = response['exception']
+        groundtruth_exception = groundtruth['exception']
+
+        return (
+            False
+            if response_output != groundtruth_output
+            else response_exception == groundtruth_exception
+        )
     

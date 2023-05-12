@@ -15,10 +15,7 @@ class QueryHealthData(API):
     database_name = 'HealthData'
     
     def __init__(self, init_database=None) -> None:
-        if init_database != None:
-            self.database = init_database
-        else:
-            self.database = {}
+        self.database = init_database if init_database != None else {}
 
     def call(self, user_id, start_time, end_time) -> dict:
         """
@@ -66,27 +63,19 @@ class QueryHealthData(API):
 
         start_time = start_time.strip()
         split_start_time = start_time.split('-')
-        if len(split_start_time) != 3:
-            pass
-        else:
-            if len(split_start_time[0]) == 4:
-                pass
-            else:
+        if len(split_start_time) == 3:
+            if len(split_start_time[0]) != 4:
                 split_start_time[0] = split_start_time[0].zfill(4)
             start_time = '-'.join(split_start_time)
         try:
             start_time = datetime.datetime.strptime(start_time, '%Y-%m-%d %H:%M:%S')
         except Exception as e:
             start_time = e
-       
+
         end_time = end_time.strip()
         split_end_time = end_time.split('-')
-        if len(split_end_time) != 3:
-            pass
-        else:
-            if len(split_end_time[0]) == 4:
-                pass
-            else:
+        if len(split_end_time) == 3:
+            if len(split_end_time[0]) != 4:
                 split_end_time[0] = split_end_time[0].zfill(4)
             end_time = '-'.join(split_end_time)
         try:
@@ -111,10 +100,10 @@ class QueryHealthData(API):
         # Check the format of the input parameters.
         user_id, start_time, end_time = self.format_check(user_id, start_time, end_time)
 
-        if user_id == None:
+        if user_id is None:
             raise Exception('The user id cannot be empty.')
         if isinstance(start_time, Exception) and isinstance(end_time, Exception):
-            raise Exception(str(start_time) + '; ' + str(end_time))
+            raise Exception(f'{str(start_time)}; {str(end_time)}')
         if isinstance(start_time, Exception):
             raise start_time
         if isinstance(end_time, Exception):
@@ -162,7 +151,7 @@ class QueryHealthData(API):
             if health_data_item_time >= start_time and health_data_item_time <= end_time:
                 health_data.append(health_data_item)
 
-        if len(health_data) == 0:
+        if not health_data:
             raise Exception('There is no health data in the given time span.')
         return health_data
     
@@ -194,6 +183,4 @@ class QueryHealthData(API):
             return False
         if response['output'] != groundtruth['output']:
             return False
-        if response['exception'] != groundtruth['exception']:
-            return False
-        return True
+        return response['exception'] == groundtruth['exception']

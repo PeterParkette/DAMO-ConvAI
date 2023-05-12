@@ -12,10 +12,7 @@ class CheckToken(API):
     }
     database_name = 'Account'
     def __init__(self, init_database=None) -> None:
-        if init_database != None:
-            self.database = init_database
-        else:
-            self.database = {}
+        self.database = init_database if init_database != None else {}
 
     def check_token(self, token: str) -> str:
         """
@@ -73,9 +70,10 @@ class CheckToken(API):
         Returns:
         - correctness (bool): whether the API call is correct.
         """
-        if response['input'] == groundtruth['input'] and response['output'] == groundtruth['output'] and response['exception'] == groundtruth['exception']:
-            return True
-        else:
-            return False
+        return (
+            response['input'] == groundtruth['input']
+            and response['output'] == groundtruth['output']
+            and response['exception'] == groundtruth['exception']
+        )
         
         

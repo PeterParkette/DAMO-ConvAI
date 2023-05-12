@@ -11,10 +11,7 @@ class ImageCaption(API):
     database_name = 'ImageCaptioning'
 
     def __init__(self, init_database=None) -> None:
-        if init_database != None:
-            self.database = init_database
-        else:
-            self.database = {}
+        self.database = init_database if init_database != None else {}
 
     def call(self, url: str) -> dict:
         """
@@ -83,7 +80,5 @@ class ImageCaption(API):
             return False
         if response['output'] != groundtruth['output']:
             return False
-        if response['exception'] != groundtruth['exception']:
-            return False
-        return True
+        return response['exception'] == groundtruth['exception']
     

@@ -60,7 +60,7 @@ class Model(PushToHubFriendlyModel):
         graph_node_idx_batch = kwargs.pop('graph_nodes_subwords_idx', None)
 
         new_graph_batch = [] # list of dicts
-        for i, graph_idx in enumerate(graph_idx_batch_lst):
+        for graph_idx in graph_idx_batch_lst:
             new_graph = self.graph_postprocess(self.graph_pedia[graph_idx], device)
             new_graph_batch.append(new_graph)
 
@@ -74,20 +74,19 @@ class Model(PushToHubFriendlyModel):
         graph_idx_batch_lst = [int(idx) for idx in graph_idx_batch]
 
         new_graph_batch = []
-        for i, graph_idx in enumerate(graph_idx_batch_lst):
+        for graph_idx in graph_idx_batch_lst:
             new_graph = self.graph_postprocess(self.graph_pedia[graph_idx], device)
             new_graph_batch.append(new_graph)
-        
+
 
         return new_graph_batch
 
 
     def graph_postprocess(self, graph: dict, device):
-        new_graph = {}
         edges = graph['edges']
         rel_ids = list(map(lambda r: self.rel2id[r[2]], edges))
 
-        new_graph['edges'] = torch.tensor(rel_ids, dtype=torch.long, device=device)
+        new_graph = {'edges': torch.tensor(rel_ids, dtype=torch.long, device=device)}
         new_graph['graph'] = graph['graph']
         # new_graph['question_subword_mask'] = torch.tensor(graph['question_subword_mask'], dtype=torch.bool)
         # new_graph['schema_subword_mask'] = torch.tensor(graph['schema_subword_mask'], dtype=torch.bool)
@@ -111,7 +110,7 @@ class Model(PushToHubFriendlyModel):
 
     def generate(self, input_ids, attention_mask, **kwargs):
         graph_batch = self.graph_factory(kwargs)
-        generated_ids = self.pretrain_model.generate(
+        return self.pretrain_model.generate(
             input_ids=input_ids,
             attention_mask=attention_mask,
             use_cache=True,
@@ -119,5 +118,3 @@ class Model(PushToHubFriendlyModel):
             # relation_embedding=self.relation_embedding
             **kwargs,
         )
-
-        return generated_ids

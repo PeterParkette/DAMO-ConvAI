@@ -18,11 +18,7 @@ class ForgotPassword(API):
     database_name = "Account"
 
     def __init__(self, init_database=None) -> None:
-        if init_database != None:
-            self.database = init_database
-        else:
-            self.database = {}
-
+        self.database = init_database if init_database != None else {}
         self.verification_code = None
         self.username = None
 
@@ -48,8 +44,8 @@ class ForgotPassword(API):
                 raise Exception("The username does not exist.")
             if self.database[username]["email"] != email:
                 raise Exception("The email is incorrect.")
-            self.verification_code = 970420 # random.randint(100000, 999999)
             self.username = username
+            self.verification_code = 970420
             return self.verification_code
         elif status == "Verification Code":
             if not self.verification_code:
@@ -109,8 +105,9 @@ class ForgotPassword(API):
         Returns:
         - correctness (bool): True if the response is correct, False otherwise.
         """
-        if response['input'] == groundtruth['input'] and response['output'] == groundtruth['output'] and response['exception'] == groundtruth['exception']:
-            return True
-        else:
-            return False
+        return (
+            response['input'] == groundtruth['input']
+            and response['output'] == groundtruth['output']
+            and response['exception'] == groundtruth['exception']
+        )
 

@@ -14,10 +14,7 @@ class ModifyPassword(API):
     }
     database_name = 'Account'
     def __init__(self, init_database=None, token_checker=None) -> None:
-        if init_database != None:
-            self.database = init_database
-        else:
-            self.database = {}
+        self.database = init_database if init_database != None else {}
         self.token_checker = token_checker
 
     def modify_password(self, token: str, old_password: str, new_password: str) -> str:
@@ -89,7 +86,5 @@ class ModifyPassword(API):
             return False
         if response['exception'] != groundtruth['exception']:
             return False
-        if response['output'] != groundtruth['output']:
-            return False
-        return True
+        return response['output'] == groundtruth['output']
     

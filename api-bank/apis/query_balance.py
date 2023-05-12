@@ -13,10 +13,7 @@ class QueryBalance(API):
 
 
     def __init__(self, init_database=None, token_checker=None) -> None:
-        if init_database != None:
-            self.database = init_database
-        else:
-            self.database = {}
+        self.database = init_database if init_database != None else {}
         assert token_checker != None
         self.token_checker = token_checker
     
@@ -99,7 +96,8 @@ class QueryBalance(API):
         response_balance = response['output']
         groundtruth_balance = groundtruth['output']
 
-        if response_token == groundtruth_token and response_balance == groundtruth_balance and response['exception'] == groundtruth['exception']:
-            return True
-        else:
-            return False
+        return (
+            response_token == groundtruth_token
+            and response_balance == groundtruth_balance
+            and response['exception'] == groundtruth['exception']
+        )

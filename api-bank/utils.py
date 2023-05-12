@@ -31,18 +31,13 @@ class ChatGPTWrapper:
         # Set the header
         self.header = {
             "Content-Type": "application/json",
-            "Authorization": 'Bearer {}'.format(api_key)
+            "Authorization": f'Bearer {api_key}',
         }
         self.proxies = proxies
 
     @retry(wait=wait_random_exponential(min=1, max=60), retry=retry_if_exception_type((RateLimitReached, RecoverableError, OfficialError, ConnectionError)))
     def call(self, messages, **kwargs):
-        query = {
-            "model": "gpt-3.5-turbo",
-            "messages": messages
-        }
-        query.update(kwargs)
-
+        query = {"model": "gpt-3.5-turbo", "messages": messages} | kwargs
         # Make the request
         if self.proxies:
             response = requests.post(self.url, headers=self.header, data=json.dumps(query), proxies=self.proxies)
@@ -54,14 +49,13 @@ class ChatGPTWrapper:
         elif 'choices' in response:
             return response
         else:
-            if 'error' in response:
-                print(response['error']['message'])
-                if response['error']['message'] == 'The server had an error while processing your request. Sorry about that!':
-                    raise RecoverableError(response['error']['message'])
-                else:
-                    raise OfficialError(response['error']['message'])
+            if 'error' not in response:
+                raise Exception(f'Unknown error occured. Json: {response}')
+            print(response['error']['message'])
+            if response['error']['message'] == 'The server had an error while processing your request. Sorry about that!':
+                raise RecoverableError(response['error']['message'])
             else:
-                raise Exception('Unknown error occured. Json: {}'.format(response))
+                raise OfficialError(response['error']['message'])
             
             
 class DavinciWrapper:
@@ -71,22 +65,16 @@ class DavinciWrapper:
         # Set the header
         self.header = {
             "Content-Type": "application/json",
-            "Authorization": 'Bearer {}'.format(api_key)
+            "Authorization": f'Bearer {api_key}',
         }
 
     @retry(wait=wait_random_exponential(min=1, max=60), retry=retry_if_exception_type((RateLimitReached, RecoverableError, OfficialError, ConnectionError)))
     def call(self, messages, **kwargs):
-        # messages to prompt
-        prompt = ''
-        for message in messages:
-            prompt += message['role'] + ': ' + message['content'] + '\n'
-
-        query = {
-            "model": "davinci",
-            "prompt": prompt
-        }
-        query.update(kwargs)
-
+        prompt = ''.join(
+            message['role'] + ': ' + message['content'] + '\n'
+            for message in messages
+        )
+        query = {"model": "davinci", "prompt": prompt} | kwargs
         # Make the request
         response = requests.post(self.url, headers=self.header, data=json.dumps(query))
         response = response.json()
@@ -95,41 +83,34 @@ class DavinciWrapper:
         elif 'choices' in response:
             return response
         else:
-            if 'error' in response:
-                print(response['error']['message'])
-                if response['error']['message'] == 'The server had an error while processing your request. Sorry about that!':
-                    raise RecoverableError(response['error']['message'])
-                else:
-                    raise OfficialError(response['error']['message'])
+            if 'error' not in response:
+                raise Exception(f'Unknown error occured. Json: {response}')
+            print(response['error']['message'])
+            if response['error']['message'] == 'The server had an error while processing your request. Sorry about that!':
+                raise RecoverableError(response['error']['message'])
             else:
-                raise Exception('Unknown error occured. Json: {}'.format(response))
+                raise OfficialError(response['error']['message'])
 
 class GPT4Wrapper(ChatGPTWrapper):
     @retry(wait=wait_random_exponential(min=1, max=60), retry=retry_if_exception_type((RateLimitReached, RecoverableError, OfficialError, ConnectionError)))
     def call(self, messages, **kwargs):
-        query = {
-            "model": "gpt-4-0314",
-            "messages": messages
-        }
-        query.update(kwargs)
-
+        query = {"model": "gpt-4-0314", "messages": messages} | kwargs
         # Make the request
         if self.proxies:
             response = requests.post(self.url, headers=self.header, data=json.dumps(query), proxies=self.proxies)
         else:
-            response = requests.post(self.url, headers=self.header, data=json.dumps(query))        
+            response = requests.post(self.url, headers=self.header, data=json.dumps(query))
         response = response.json()
         if 'error' in response and 'Rate limit reached' in response['error']['message']:
             raise RateLimitReached()
         elif 'choices' in response:
             return response
         else:
-            if 'error' in response:
-                print(response['error']['message'])
-                if response['error']['message'] == 'The server had an error while processing your request. Sorry about that!':
-                    raise RecoverableError(response['error']['message'])
-                else:
-                    raise OfficialError(response['error']['message'])
+            if 'error' not in response:
+                raise Exception(f'Unknown error occured. Json: {response}')
+            print(response['error']['message'])
+            if response['error']['message'] == 'The server had an error while processing your request. Sorry about that!':
+                raise RecoverableError(response['error']['message'])
             else:
-                raise Exception('Unknown error occured. Json: {}'.format(response))
+                raise OfficialError(response['error']['message'])
 

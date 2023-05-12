@@ -93,7 +93,6 @@ class RGAT_Layer(nn.Module):
         # Update node state
         g.update_all(src_sum_edge_mul_edge('v', 'e', 'score', 'v'), fn.sum('v', 'wv'))
         g.update_all(fn.copy_edge('score', 'score'), fn.sum('score', 'z'), div_by_z('wv', 'z', 'o'))
-        out_x = g.ndata['o']
-        return out_x
+        return g.ndata['o']
 
 

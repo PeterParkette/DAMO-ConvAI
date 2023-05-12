@@ -17,10 +17,7 @@ class RegisterUser(API):
     database_name = 'Account'
 
     def __init__(self, init_database=None) -> None:
-        if init_database != None:
-            self.database = init_database
-        else:
-            self.database = {}
+        self.database = init_database if init_database != None else {}
 
     def register_user(self, username: str, password: str, email: str) -> str:
         """
@@ -102,13 +99,13 @@ class RegisterUser(API):
         Returns:
         - is_correct (bool): whether the API call is correct.
         """
-        if groundtruth['output'] == None and response['output'] != None:
+        if groundtruth['output'] is None and response['output'] != None:
             return False
 
-        if response['input'] == groundtruth['input'] and response['exception'] == groundtruth['exception']:
-            return True
-        else:
-            return False
+        return (
+            response['input'] == groundtruth['input']
+            and response['exception'] == groundtruth['exception']
+        )
         
     def dump_database(self, filename: str) -> None:
         """

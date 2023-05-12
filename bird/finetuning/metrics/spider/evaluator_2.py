@@ -51,11 +51,11 @@ class EvaluateTool(object):
         sqls = []
         # db_ids = []
         db_places = []
-        for i, result_items in enumerate(golds):
+        for result_items in golds:
             sqls.append(result_items['query'])
             # db_ids.append(result_items['db_id'])
             db_places.append(result_items['db_path'] + '/' + result_items['db_id'] + '/' + result_items['db_id'] + '.sqlite')
-        
+
         return sqls, db_places
     
     def execute_sql(self, sql, db_path):
@@ -64,16 +64,16 @@ class EvaluateTool(object):
         # Create a cursor object
         cursor = conn.cursor()
         cursor.execute(sql)
-        results = cursor.fetchall()
-
-        return results
+        return cursor.fetchall()
 
     def exec_all_sqls(self, sqls, db_places):
-        result = []
-        for i, sql in enumerate(sqls):
-            result.append({'sql_idx': i, 'results': self.execute_sql(sql=sql, db_path=db_places[i])})
-        
-        return result
+        return [
+            {
+                'sql_idx': i,
+                'results': self.execute_sql(sql=sql, db_path=db_places[i]),
+            }
+            for i, sql in enumerate(sqls)
+        ]
     
     def compute_execution_accuracy(self, gt_results, predict_results):
         num_correct = 0
@@ -86,9 +86,7 @@ class EvaluateTool(object):
             else:
                 mismatch_idx.append(i)
 
-        acc = (num_correct / num_queries) * 100
-
-        return acc
+        return (num_correct / num_queries) * 100
 
     def evaluate(self, preds, golds, section):
         if self.args.seq2seq.target_with_db_id:

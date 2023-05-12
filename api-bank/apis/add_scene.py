@@ -14,10 +14,7 @@ class AddScene(API):
     database_name = 'Scenes'
 
     def __init__(self, init_database=None) -> None:
-        if init_database != None:
-            self.database = init_database
-        else:
-            self.database = {}
+        self.database = init_database if init_database != None else {}
 
     def call(self, name: str, devices: list) -> dict:
         """
@@ -125,8 +122,6 @@ class AddScene(API):
             return False
         # if response['output'] != groundtruth['output']:
         #     return False
-        if groundtruth['output'] == None and response['output'] != None:
+        if groundtruth['output'] is None and response['output'] != None:
             return False
-        if response['exception'] != groundtruth['exception']:
-            return False
-        return True
+        return response['exception'] == groundtruth['exception']

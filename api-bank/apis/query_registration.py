@@ -13,10 +13,7 @@ class QueryRegistration(API):
     database_name = 'Appointments'
 
     def __init__(self, init_database=None) -> None:
-        if init_database != None:
-            self.database = init_database
-        else:
-            self.database = {}
+        self.database = init_database if init_database != None else {}
 
     def call(self, patient_name: str, date: str) -> dict:
         """
@@ -55,9 +52,7 @@ class QueryRegistration(API):
         date = date.strip()
         split_date = date.split('-')
         if len(split_date) == 3:
-            if len(split_date[0]) == 4:
-                pass
-            else:
+            if len(split_date[0]) != 4:
                 split_date[0] = split_date[0].zfill(4)
             date = '-'.join(split_date)
         try:
@@ -81,13 +76,13 @@ class QueryRegistration(API):
         date = self.format_check(date)
         if isinstance(date, Exception):
             raise date
-        
+
         appointments = {}
         for appointment in self.database:
             if self.database[appointment]['patient_name'] == patient_name:
                 if self.format_check(self.database[appointment]['date']) == date:
                     appointments[appointment] = self.database[appointment]
-        if len(appointments) == 0:
+        if not appointments:
             raise Exception("No appointments found.")
         return appointments
         
@@ -119,6 +114,4 @@ class QueryRegistration(API):
             return False
         if response['output'] != groundtruth['output']:
             return False
-        if response['exception'] != groundtruth['exception']:
-            return False
-        return True
+        return response['exception'] == groundtruth['exception']

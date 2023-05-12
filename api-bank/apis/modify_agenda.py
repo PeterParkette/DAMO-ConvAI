@@ -18,10 +18,7 @@ class ModifyAgenda(API):
     database_name = 'Agenda'
 
     def __init__(self, init_database=None, token_checker=None) -> None:
-        if init_database != None:
-            self.database = init_database
-        else:
-            self.database = {}
+        self.database = init_database if init_database != None else {}
         self.token_checker = token_checker
 
     def check_api_call_correctness(self, response, groundtruth) -> bool:
@@ -37,17 +34,18 @@ class ModifyAgenda(API):
         """
         response_content, groundtruth_content = response['input']['content'].split(" "), groundtruth['input'][
             'content'].split(" ")
-        content_satisfied = False
-        if len(set(response_content).intersection(set(groundtruth_content))) / len(set(response_content).union(
-                set(groundtruth_content))) > 0.5:
-            content_satisfied = True
-
-        if content_satisfied and response['input']['time'] == groundtruth['input']['time'] \
-                and response['input']['location'] == groundtruth['input']['location'] and response['output'] == \
-                groundtruth['output'] and response['exception'] == groundtruth['exception']:
-            return True
-        else:
-            return False
+        content_satisfied = (
+            len(set(response_content).intersection(set(groundtruth_content)))
+            / len(set(response_content).union(set(groundtruth_content)))
+            > 0.5
+        )
+        return (
+            content_satisfied
+            and response['input']['time'] == groundtruth['input']['time']
+            and response['input']['location'] == groundtruth['input']['location']
+            and response['output'] == groundtruth['output']
+            and response['exception'] == groundtruth['exception']
+        )
 
     def call(self, token: str, content: str, time: str, location: str) -> dict:
         input_parameters = {
@@ -87,5 +85,5 @@ class ModifyAgenda(API):
             raise Exception(f'You have no agenda about {content}')
         if time:
             raise Exception(f'You have no agenda at time : {time}')
-        return Exception(f'Error')
+        return Exception('Error')
 
